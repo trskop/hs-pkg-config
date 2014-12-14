@@ -41,7 +41,7 @@ module Data.PkgConfig
 
     -- ** Version Combinators
     , version
-    , (.=), (.<), (.>), (.<=), (.>=)
+    , (.=), (./=), (.<), (.>), (.<=), (.>=)
 
     -- ** Options Combinators
     , includes
@@ -126,8 +126,9 @@ version (v : vs) = case vs of
     wordLit :: Word -> PkgTemplate
     wordLit = strLit . show
 
-(.=), (.<), (.>), (.<=), (.>=) :: Strict.Text -> [Word] -> PkgTemplate
+(.=), (./=), (.<), (.>), (.<=), (.>=) :: Strict.Text -> [Word] -> PkgTemplate
 pkg .=  ver = lit pkg <> strLit " = "  <> version ver
+pkg ./= ver = lit pkg <> strLit " != " <> version ver
 pkg .<  ver = lit pkg <> strLit " < "  <> version ver
 pkg .>  ver = lit pkg <> strLit " > "  <> version ver
 pkg .<= ver = lit pkg <> strLit " <= " <> version ver
