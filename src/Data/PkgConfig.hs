@@ -14,6 +14,9 @@
 -- specialized for this purpose.
 module Data.PkgConfig
     (
+    -- * Usage
+    -- $usage
+
     -- * PkgConfig
       PkgConfig
 
@@ -218,3 +221,61 @@ writePkgConfig :: FilePath -> PkgConfig -> IO ()
 writePkgConfig file = Strict.Text.writeFile file . toStrictText
 
 -- }}} I/O --------------------------------------------------------------------
+
+-- $usage
+--
+-- Following code is able to generate @foo.pc@, a /pkg-config/ configuration
+-- file for library @foo@:
+--
+-- @
+-- {-\# LANGUAGE OverloadedStrings \#-}
+-- module Main (main)
+--   where
+--
+-- import Data.Default.Class ('Default'('def'))
+-- import Data.String ('IsString')
+-- import Control.Lens
+--
+-- import Data.PkgConfig
+--
+--
+-- libraryBaseName :: 'IsString' a => a
+-- libraryBaseName = \"foo\"
+--
+-- main :: IO ()
+-- main = 'writePkgConfig' (libraryBaseName '++' \".pc\") libPkgConfig
+--   where
+--     libPkgConfig = 'def'
+--         & 'pkgVariables'   '.~'
+--             [ (\"prefix\",     \"\/usr\/local\"              )
+--             , (\"includedir\", 'var' \"prefix\" '</>' \"include\")
+--             , (\"libdir\",     'var' \"prefix\" '</>' \"lib\"    )
+--             , (\"arch\",       \"i386\"                    )
+--             ]
+--         & 'pkgName'        '.~' libraryBaseName
+--         & 'pkgDescription' '.~' \"Example pkg-config.\"
+--         & 'pkgVersion'     '.~' 'version' [1, 2, 3]
+--         & 'pkgCflags'      '.~' 'includes' ['var' \"includedir\"]
+--         & 'pkgRequires'    '.~' 'list'
+--             [ \"bar\" '~>' [0], \"bar\" '~<=' [3, 1]
+--             , \"baz\" '~=' [1, 2, 3]
+--             ]
+--         & 'pkgLibs'        '.~' options
+--             [ 'libraryPath' ['var' \"libdir\", 'var' \"libdir\" '</>' 'var' \"arch\"]
+--             , 'libraries' [libraryBaseName]
+--             ]
+-- @
+--
+-- Content of generated @foo.pc@:
+--
+-- > prefix=/usr/local
+-- > includedir=${prefix}/include
+-- > libdir=${prefix}/lib
+-- > arch=i386
+-- >
+-- > Name: foo
+-- > Description: Example pkg-config.
+-- > Version: 1.2.3
+-- > Requires: bar > 0, bar <= 3.1, baz = 1.2.3
+-- > Cflags: -I${includedir}
+-- > Libs: -L${libdir} -L${libdir}/${arch} -lfoo

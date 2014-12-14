@@ -7,6 +7,8 @@ description:
   .
   One of the possible usage examples of this library is generating @.pc@ files
   from <http://shakebuild.com Shake build system>.
+  .
+  For usage example see "Data.PkgConfig" module.
 
 homepage:             https://github.com/trskop/hs-pkg-config
 license:              BSD3
