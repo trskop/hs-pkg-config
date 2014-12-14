@@ -48,7 +48,7 @@ import Data.Data (Data)
 import Data.Function ((.), ($), flip)
 import Data.Functor (Functor(fmap))
 import Data.List as List (filter, map)
-import Data.Monoid (Monoid(mempty), (<>))
+import Data.Monoid ((<>))
 import Data.Typeable (Typeable)
 import Text.Show (Show)
 
@@ -122,13 +122,13 @@ instance Default PkgConfig where
         , _pkgName = Strict.Text.empty
         , _pkgDescription = Strict.Text.empty
         , _pkgUrl = Strict.Text.empty
-        , _pkgVersion = mempty
-        , _pkgRequires = mempty
-        , _pkgRequiresPrivate = mempty
-        , _pkgConflicts = mempty
-        , _pkgCflags = mempty
-        , _pkgLibs = mempty
-        , _pkgLibsPrivate = mempty
+        , _pkgVersion = def
+        , _pkgRequires = def
+        , _pkgRequiresPrivate = def
+        , _pkgConflicts = def
+        , _pkgCflags = def
+        , _pkgLibs = def
+        , _pkgLibsPrivate = def
         }
 
 -- | Serialize 'PkgConfig' in to strict 'Strict.Text'.

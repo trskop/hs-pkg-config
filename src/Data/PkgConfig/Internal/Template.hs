@@ -60,6 +60,8 @@ import qualified Data.Text.Lazy as Lazy (Text)
 import qualified Data.Text.Lazy.Builder as Text (Builder)
 import qualified Data.Text.Lazy.Builder as Text.Builder
 
+import Data.Default.Class (Default(def))
+
 
 -- {{{ Template Definition ----------------------------------------------------
 
@@ -187,6 +189,10 @@ instance Show Template where
 
 instance IsString Template where
     fromString = strLit
+
+instance Default Template where
+    def = Template []
+    {-# INLINE def #-}
 
 -- }}} Instances for Template -------------------------------------------------
 
