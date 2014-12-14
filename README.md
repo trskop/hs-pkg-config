@@ -89,6 +89,9 @@ it is able to parse file correctly, we just hadn't provided `bar.pc` and
 it.
 
 
+[Hackage: hs-pkg-config]:
+  https://hackage.haskell.org/package/hs-pkg-config
+  "Hackage: hs-pkg-config"
 [Pkg-config Homepage]:
   http://www.freedesktop.org/wiki/Software/pkg-config/
   "Pkg-configh Homepage"
