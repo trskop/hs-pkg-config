@@ -1,4 +1,11 @@
-# Introduction
+Hs-pkg-config
+=============
+
+[![Hackage](https://budueba.com/hackage/hs-pkg-config)][Hackage: hs-pkg-config]
+
+
+Description
+-----------
 
 Library for creating [pkg-config][Pkg-config Homepage] configuration files from
 Haskell.
@@ -7,7 +14,8 @@ One of the possible usage examples of this library is generating `.pc` files
 from [Shake build system][Shake Homepage].
 
 
-# Example
+Example
+-------
 
 Following Haskell code is able to generate package config named `foo.pc` for
 library `foo`:
