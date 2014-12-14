@@ -134,11 +134,11 @@ fragmentToStrictText frag = case frag of
       | otherwise = (c1, c2 <> txt')
         -- There might be two cases here:
         --
-        -- * Both "\r\r" and "\n\n" are two subsequent line terminators, but at
+        -- - Both "\r\r" and "\n\n" are two subsequent line terminators, but at
         --   the moment it is not possible to know if the later line terminator
         --   is not in fact "\r\n" or "\n\r" sequence.
         --
-        -- * Its either '\r' or '\n' followed by non-eol character.
+        -- - Its either '\r' or '\n' followed by non-eol character.
       where
         -- End of line character sequence can be at most 2 characters long
         -- ("\r\n" or "\n\r").

@@ -36,6 +36,8 @@ module Data.PkgConfig
     , PkgUrl
     , PkgVariable
     , PkgVersion
+
+    -- ** Serialization
     , toStrictText
 
     -- ** I/O
