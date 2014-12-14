@@ -246,21 +246,21 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- main = 'writePkgConfig' (libraryBaseName '++' \".pc\") libPkgConfig
 --   where
 --     libPkgConfig = 'def'
---         & 'pkgVariables'   '.~'
+--         & 'pkgVariables'   .~
 --             [ (\"prefix\",     \"\/usr\/local\"              )
 --             , (\"includedir\", 'var' \"prefix\" '</>' \"include\")
 --             , (\"libdir\",     'var' \"prefix\" '</>' \"lib\"    )
 --             , (\"arch\",       \"i386\"                    )
 --             ]
---         & 'pkgName'        '.~' libraryBaseName
---         & 'pkgDescription' '.~' \"Example pkg-config.\"
---         & 'pkgVersion'     '.~' 'version' [1, 2, 3]
---         & 'pkgCflags'      '.~' 'includes' ['var' \"includedir\"]
---         & 'pkgRequires'    '.~' 'list'
+--         & 'pkgName'        .~ libraryBaseName
+--         & 'pkgDescription' .~ \"Example pkg-config.\"
+--         & 'pkgVersion'     .~ 'version' [1, 2, 3]
+--         & 'pkgCflags'      .~ 'includes' ['var' \"includedir\"]
+--         & 'pkgRequires'    .~ 'list'
 --             [ \"bar\" '~>' [0], \"bar\" '~<=' [3, 1]
 --             , \"baz\" '~=' [1, 2, 3]
 --             ]
---         & 'pkgLibs'        '.~' options
+--         & 'pkgLibs'        .~ 'options'
 --             [ 'libraryPath' ['var' \"libdir\", 'var' \"libdir\" '</>' 'var' \"arch\"]
 --             , 'libraries' [libraryBaseName]
 --             ]
