@@ -10,7 +10,7 @@
 -- Stability:    experimental
 -- Portability:  DeriveDataTypeable, NoImplicitPrelude
 --
--- Crate /pkg-config/ configuration file from Haskell code using combinators
+-- Create /pkg-config/ configuration file from Haskell code using combinators
 -- specialized for this purpose.
 module Data.PkgConfig
     (

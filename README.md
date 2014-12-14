@@ -1,6 +1,6 @@
 # Introduction
 
-Library for crating [pkg-config][Pkg-config Homepage] configuration files from
+Library for creating [pkg-config][Pkg-config Homepage] configuration files from
 Haskell.
 
 One of the possible usage examples of this library is generating `.pc` files
