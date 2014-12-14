@@ -48,3 +48,12 @@ library
     , data-default-class ==0.*
 
   ghc-options:          -Wall
+
+source-repository head
+  type:                 git
+  location:             git://github.com/trskop/between.git
+
+source-repository this
+  type:                 git
+  location:             git://github.com/trskop/between.git
+  tag:                  0.1.0.0
