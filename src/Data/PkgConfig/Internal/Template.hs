@@ -63,17 +63,25 @@ import qualified Data.Text.Lazy.Builder as Text.Builder
 
 -- {{{ Template Definition ----------------------------------------------------
 
+-- | 'Template' fragment ca be either literal or variable. Literals are subject
+-- to escaping rules when serialized.
 data Fragment
     = Literal  {-# UNPACK #-} !Strict.Text
     | Variable {-# UNPACK #-} !Strict.Text
   deriving (Data, Eq, Generic, Typeable)
 
+-- | 'Template' is a possibly empty sequence of fragments represented by
+-- 'Fragment' data type.
 newtype Template = Template [Fragment]
   deriving (Data, Generic, Typeable)
 
+-- | Template consists of variables and literal strings. All special characters
+-- (\'$\', \'#\', \'\\\' and end-of-line sequences) contained in literals are
+-- escaped when serialized.
 type PkgTemplate = Template
 
--- | Serialize fragment in to strict 'Strict.Text'.
+-- | Serialize fragment in to strict 'Strict.Text'. For literals function
+-- performs escaping of special characters.
 fragmentToStrictText :: Fragment -> Strict.Text
 fragmentToStrictText frag = case frag of
     Literal txt   -> escape txt
@@ -84,6 +92,12 @@ fragmentToStrictText frag = case frag of
     -- there is trim_and_sub() that treats sequence of two '$' characters as
     -- just one and doesn't perform variable expansion. Both mentioned
     -- functions can be found in "parse.c" file.
+
+    -- Escape all special characters including end-of-line sequences.
+    escape :: Strict.Text -> Strict.Text
+    escape = Strict.Text.concat . escapeLoop
+
+    -- Escape all special characters except end-of-line sequence.
     escapeChar :: Char -> Strict.Text
     escapeChar c = Strict.Text.pack $ case c of
         '$'  -> "$$"
@@ -91,21 +105,18 @@ fragmentToStrictText frag = case frag of
         '\\' -> "\\\\"
         _    -> [c]
 
-    escape, escape' :: Strict.Text -> Strict.Text
-    escape' = Strict.Text.concatMap escapeChar
-    escape = Strict.Text.concat . escapeLoop
-
-    -- Process text by splitting it on EOL, repeatedly.
+    -- Process text by splitting it on EOL, repeatedly, and escape special
+    -- characters and end of line sequences.
     escapeLoop :: Strict.Text -> [Strict.Text]
     escapeLoop txt
       | Strict.Text.null txt = []
       | otherwise            =
-        case Strict.Text.break isCrOrLf txt of
-            (txt1, txt2)
-              | Strict.Text.null txt2 -> [escape' txt1]
-              | otherwise           ->
-                escape' txt1 : (backslash <> eol) : escapeLoop txtRest
-              where (eol, txtRest) = processEol txt2
+        Strict.Text.concatMap escapeChar txt1 : if Strict.Text.null txt2
+            then []
+            else let (eol, txtRest) = processEol txt2
+                in (backslash <> eol) : escapeLoop txtRest
+      where
+        (txt1, txt2) = Strict.Text.break isCrOrLf txt
 
     -- Function takes text and splits it to pair where first element is EOL
     -- character sequence, i.e. one of "\r", "\n", "\r\n", or "\n\r". Reason
@@ -115,20 +126,24 @@ fragmentToStrictText frag = case frag of
     -- Input condition:
     --   Text passed to this funtion starts with either '\r' or '\n'.
     processEol :: Strict.Text -> (Strict.Text, Strict.Text)
-    processEol txt = case Strict.Text.splitAt 2 txt of
-        (x, y)
-          | (c1, c2) == (cr, lf) || (c1, c2) == (lf, cr) -> (x, y)
-            -- Now its one either "\r\n" or "\n\r". In either case all this
-            -- sequences are escaped the same way. Since pkg-config treats
-            -- "\r\n" and "\n\r" both as single line terminator.
-          | (c1, c2) == (cr, cr) || (c1, c2) == (lf, lf) -> (c1, c2 <> y)
-            -- Both "\r\r" and "\n\n" are two subsequent line
-            -- terminators, but at the moment it is not possible to
-            -- know if the later line terminator is not in fact
-            -- "\r\n" or "\n\r" sequence.
-          | otherwise -> (c1, c2 <> y)
-            -- Now its either '\r' or '\n' followed by non-eol character.
-          where (c1, c2) = Strict.Text.splitAt 1 x
+    processEol txt
+      | (c1, c2) == (cr, lf) || (c1, c2) == (lf, cr) = (eol, txt')
+        -- Value of eol is either "\r\n" or "\n\r". In either case it is
+        -- escaped the same way, since pkg-config treats "\r\n" and "\n\r" both
+        -- as single line terminator.
+      | otherwise = (c1, c2 <> txt')
+        -- There might be two cases here:
+        --
+        -- * Both "\r\r" and "\n\n" are two subsequent line terminators, but at
+        --   the moment it is not possible to know if the later line terminator
+        --   is not in fact "\r\n" or "\n\r" sequence.
+        --
+        -- * Its either '\r' or '\n' followed by non-eol character.
+      where
+        -- End of line character sequence can be at most 2 characters long
+        -- ("\r\n" or "\n\r").
+        (eol, txt') = Strict.Text.splitAt 2 txt
+        (c1, c2) = Strict.Text.splitAt 1 eol
 
     isCrOrLf :: Char -> Bool
     isCrOrLf c = c == '\r' || c == '\n'
@@ -157,7 +172,7 @@ toStrictText (Template fragments) =
 
 -- {{{ Instances for Template -------------------------------------------------
 
--- | Requires template to be converted in to lazy string.
+-- | Requires template to be converted in to lazy 'Lazy.Text'.
 instance Eq Template where
     (==) = (==) `on` toLazyText
 
@@ -195,9 +210,12 @@ lit l
   | Strict.Text.null l = mempty
   | otherwise          = Template [Literal l]
 
+-- | Create 'PkgTemplate' literal from 'String' by packing it in to strict
+-- 'Strict.Text' first.
 strLit :: String -> PkgTemplate
 strLit = lit . Strict.Text.pack
 
+-- | Crate one character long 'PkgTemplate' literal.
 singletonLit :: Char -> PkgTemplate
 singletonLit = lit . Strict.Text.singleton
 
@@ -205,6 +223,7 @@ singletonLit = lit . Strict.Text.singleton
 
 -- {{{ Query Template ---------------------------------------------------------
 
+-- | List all variables mentioned in 'PkgTemplate'.
 variables :: PkgTemplate -> [Strict.Text]
 variables (Template fragments) = variables' fragments
   where
@@ -214,4 +233,3 @@ variables (Template fragments) = variables' fragments
         Variable v -> v : variables' xs
 
 -- }}} Query Template ---------------------------------------------------------
-
