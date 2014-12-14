@@ -15,7 +15,22 @@
 module Data.PkgConfig
     (
     -- * PkgConfig
-      PkgConfig(..)     -- TODO: Lenses
+      PkgConfig
+
+    -- ** Lenses
+    , pkgVariables
+    , pkgName
+    , pkgDescription
+    , pkgUrl
+    , pkgVersion
+    , pkgRequires
+    , pkgRequiresPrivate
+    , pkgConflicts
+    , pkgCflags
+    , pkgLibs
+    , pkgLibsPrivate
+
+    -- ** Type Aliases
     , PkgDescription
     , PkgName
     , PkgUrl
@@ -78,12 +93,23 @@ import Data.PkgConfig.Internal.Template
     , variables
     )
 import Data.PkgConfig.Internal.PkgConfig
-    ( PkgConfig(..)
+    ( PkgConfig
     , PkgDescription
     , PkgName
     , PkgUrl
     , PkgVariable
     , PkgVersion
+    , pkgCflags
+    , pkgConflicts
+    , pkgDescription
+    , pkgLibs
+    , pkgLibsPrivate
+    , pkgName
+    , pkgRequires
+    , pkgRequiresPrivate
+    , pkgUrl
+    , pkgVariables
+    , pkgVersion
     , toStrictText
     )
 
