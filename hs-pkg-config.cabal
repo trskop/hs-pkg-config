@@ -19,7 +19,8 @@ build-type:           Simple
 cabal-version:        >=1.10
 
 extra-source-files:
-    README.md
+    ChangeLog.md
+  , README.md
   , example.hs
 
 library
