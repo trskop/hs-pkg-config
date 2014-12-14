@@ -67,7 +67,8 @@ Cflags: -I${includedir}
 Libs: -L${libdir} -L${libdir}/${arch} -lfoo
 ```
 
-Now lets see if `pkg-config` would be tell us something about this library:
+Now lets see if `pkg-config` would be able to tell us something about this
+library:
 
     $ PKG_CONFIG_PATH=`pwd` pkg-config --modversion foo
     1.2.3
