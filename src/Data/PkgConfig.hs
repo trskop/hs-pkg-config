@@ -55,7 +55,10 @@ module Data.PkgConfig
     , strLit
     , singletonLit
 
-    -- ** File Path Combinators
+    -- ** Combinators
+    , quote
+
+    -- ** FilePath-like Combinators
     , (</>)
     , (<.>)
 
@@ -64,6 +67,8 @@ module Data.PkgConfig
     , (~=), (~/=), (~<), (~>), (~<=), (~>=)
 
     -- ** Options Combinators
+    , option
+    , strOption
     , includes
     , libraries
     , libraryPath
@@ -81,6 +86,7 @@ module Data.PkgConfig
 import Data.Function ((.), ($))
 import Data.List as List (map)
 import Data.Monoid (Monoid(mempty), (<>))
+import Data.String (String)
 import Data.Word (Word)
 import System.IO (IO, FilePath)
 import Text.Show (Show(show))
@@ -118,6 +124,10 @@ import Data.PkgConfig.Internal.PkgConfig
     , toStrictText
     )
 
+-- {{{ PkgTemplate Combinators ------------------------------------------------
+
+quote :: PkgTemplate -> PkgTemplate
+quote t = singletonLit '"' <> t <> singletonLit '"'
 
 -- {{{ File Path Combinators --------------------------------------------------
 
@@ -192,12 +202,28 @@ options = separatedBy $ Strict.Text.singleton ' '
 
 -- {{{ Options Combinators ----------------------------------------------------
 
--- | Take list of templates and make compiler include options.
+-- | Create template starting with option followed by its argument. Argument
+-- is quoted using 'quote' function to prevent problems with spaces in
+-- directory names.
+--
+-- >>> option "--foo=" $ var "prefix" </> "some dir"
+-- --foo="${prefix}/some dir"
+option :: Strict.Text -> PkgTemplate -> PkgTemplate
+option opt = (lit opt <>) . quote
+
+-- | Same as 'option', but takes 'String' instead of strict 'Strict.Text'.
+strOption :: String -> PkgTemplate -> PkgTemplate
+strOption = option . Strict.Text.pack
+
+-- | Take list of templates and make compiler include options. Template for
+-- include directory is wrapped in quotes (see 'quote' and 'option' functions).
 --
 -- >>> let d = var "prefix" </> "include" in includes [d, d </> var "arch"]
--- -I${prefix}/include -I${prefix}/include/${arch}
+-- -I"${prefix}/include" -I"${prefix}/include/${arch}"
+-- >>> includes [var "prefix" </> "some dir"]
+-- -I"${prefix}/some dir"
 includes :: [PkgTemplate] -> PkgTemplate
-includes = options . List.map (strLit "-I" <>)
+includes = options . List.map (strOption "-I")
 
 -- | Take list of templates and make compiler library options.
 --
@@ -206,14 +232,16 @@ includes = options . List.map (strLit "-I" <>)
 libraries :: [PkgTemplate] -> PkgTemplate
 libraries = options . List.map (strLit "-l" <>)
 
--- | Take list of templates and make compiler library path options.
+-- | Take list of templates and make compiler library path options. Template for
+-- include directory is wrapped in quotes (see 'quote' and 'option' functions).
 --
 -- >>> let l = var "prefix" </> lit "lib" in libraryPath [l, l </> var "arch"]
--- -L${prefix}/lib -L${prefix}/lib/${arch}
+-- -L"${prefix}/lib" -L"${prefix}/lib/${arch}"
 libraryPath :: [PkgTemplate] -> PkgTemplate
-libraryPath = options . List.map (strLit "-L" <>)
+libraryPath = options . List.map (strOption "-L")
 
 -- }}} Options Combinators ----------------------------------------------------
+-- }}} PkgTemplate Combinators ------------------------------------------------
 
 -- {{{ I/O --------------------------------------------------------------------
 
@@ -277,5 +305,5 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- > Description: Example pkg-config.
 -- > Version: 1.2.3
 -- > Requires: bar > 0, bar <= 3.1, baz = 1.2.3
--- > Cflags: -I${includedir}
--- > Libs: -L${libdir} -L${libdir}/${arch} -lfoo
+-- > Cflags: -I"${includedir}"
+-- > Libs: -L"${libdir}" -L"${libdir}/${arch}" -lfoo

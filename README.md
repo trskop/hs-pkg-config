@@ -71,8 +71,8 @@ Name: foo
 Description: Example pkg-config.
 Version: 1.2.3
 Requires: bar > 0, bar <= 3.1, baz = 1.2.3
-Cflags: -I${includedir}
-Libs: -L${libdir} -L${libdir}/${arch} -lfoo
+Cflags: -I"${includedir}"
+Libs: -L"${libdir}" -L"${libdir}/${arch}" -lfoo
 ```
 
 Now lets see if `pkg-config` would be able to tell us something about this
