@@ -11,7 +11,14 @@
 -- Portability:  DeriveDataTypeable, NoImplicitPrelude
 --
 -- Create /pkg-config/ configuration file from Haskell code using combinators
--- specialized for this purpose.
+-- specialized for this purpose. To learn more about /pkg-config/ please read
+-- one or both following articles:
+--
+-- * <http://people.freedesktop.org/~dbn/pkg-config-guide.html Guide to pkg-config>
+--   by Dan Nicholson
+--
+-- * <https://autotools.io/ Autotools Mythbuster> by Diego Elio Pettenò:
+--   <https://autotools.io/pkgconfig/index.html Chapter 4. Dependency discovery -- pkg-config>
 module Data.PkgConfig
     (
     -- * Usage
