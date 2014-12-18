@@ -253,16 +253,22 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- $usage
 --
 -- Following code is able to generate @foo.pc@, a /pkg-config/ configuration
--- file for library @foo@:
+-- file for library named @foo@:
 --
 -- @
 -- {-\# LANGUAGE OverloadedStrings \#-}
 -- module Main (main)
 --   where
 --
--- import Data.Default.Class ('Default'('def'))
 -- import Data.String ('IsString')
+--
+-- import Data.Default.Class ('Default'('def'))
+--   -- From data-default-class library:
+--   -- <http://hackage.haskell.org/package/data-default-class>
+--
 -- import Control.Lens
+--   -- From lens library:
+--   -- <http://hackage.haskell.org/package/lens>
 --
 -- import Data.PkgConfig
 --
