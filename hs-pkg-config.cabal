@@ -1,5 +1,5 @@
 name:                 hs-pkg-config
-version:              0.1.0.0
+version:              0.2.0.0
 synopsis:             Create pkg-config configuration files
 description:
   Create /pkg-config/ configuration file from Haskell code using combinators
@@ -55,8 +55,3 @@ library
 source-repository head
   type:                 git
   location:             git://github.com/trskop/between.git
-
-source-repository this
-  type:                 git
-  location:             git://github.com/trskop/between.git
-  tag:                  0.1.0.0
