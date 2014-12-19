@@ -25,6 +25,7 @@ module Data.PkgConfig
     -- $usage
 
     -- * PkgConfig
+    -- $pkgConfig
       PkgConfig
 
     -- ** Lenses
@@ -41,6 +42,8 @@ module Data.PkgConfig
     , pkgLibsPrivate
 
     -- ** Type Aliases
+    --
+    -- | These are used to make type signatures easier to read.
     , PkgDescription
     , PkgName
     , PkgUrl
@@ -54,6 +57,7 @@ module Data.PkgConfig
     , writePkgConfig
 
     -- * PkgTemplate
+    -- $pkgTemplate
     , PkgTemplate
 
     -- ** Smart Constructors
@@ -133,6 +137,13 @@ import Data.PkgConfig.Internal.PkgConfig
 
 -- {{{ PkgTemplate Combinators ------------------------------------------------
 
+-- | Put quotation marks (\'\"\') around a template.
+--
+-- >>> quote $ var "prefix" </> "include"
+-- "${prefix}/include"
+--
+-- >>> var "prefix" </> quote "dir with spaces"
+-- ${prefix}/"dir with spaces"
 quote :: PkgTemplate -> PkgTemplate
 quote t = singletonLit '"' <> t <> singletonLit '"'
 
@@ -174,18 +185,62 @@ version (v : vs) = case vs of
     wordLit :: Word -> PkgTemplate
     wordLit = strLit . show
 
-(~=), (~/=), (~<), (~>), (~<=), (~>=) :: Strict.Text -> [Word] -> PkgTemplate
+-- | Dependency on a package of exact version.
+--
+-- >>> "sqlite" ~= [3, 8, 7, 1]
+-- sqlite = 3.8.7.1
+(~=) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~=  ver = lit pkg <> strLit " = "  <> version ver
+
+-- | Dependency on a package not of a specific version.
+--
+-- >>> "alpha" ~/= [7, 2]
+-- alpha != 7.2
+(~/=) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~/= ver = lit pkg <> strLit " != " <> version ver
+
+-- | Dependency on a package with version greater or less then specified
+-- value.
+--
+-- >>> "alpha" ~< [7, 3]
+-- alpha < 7.3
+(~<) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~<  ver = lit pkg <> strLit " < "  <> version ver
+
+-- | Dependency on a package with version greater then specified value.
+--
+-- >>> "sqlite" ~> [3, 8]
+-- sqlite3 > 3.8
+(~>) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~>  ver = lit pkg <> strLit " > "  <> version ver
+
+-- | Dependency on a package with version greater or less or equal then
+-- specified value.
+(~<=) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~<= ver = lit pkg <> strLit " <= " <> version ver
+
+-- | Dependency on a package with version greater or equal then specified
+-- value.
+(~>=) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~>= ver = lit pkg <> strLit " >= " <> version ver
 
 -- }}} Version Combinators ----------------------------------------------------
 
 -- {{{ Specialized Folds for Template -----------------------------------------
 
+-- | Put specified text between templates.
+--
+-- Following properties hold:
+--
+-- @
+-- forall s. 'separatedBy' s [] === 'mempty'
+-- forall s t. 'separatedBy' s [t] === t
+-- @
+--
+-- Example:
+--
+-- >>> separatedBy ", " ["foo", "bar", "baz"]
+-- foo, bar, baz
 separatedBy :: Strict.Text -> [PkgTemplate] -> PkgTemplate
 separatedBy _ []       = mempty
 separatedBy _ (x : []) = x
@@ -195,6 +250,13 @@ separatedBy s (x : xs) = x <> lit s <> separatedBy s xs
 --
 -- >>> list ["foo" .= [1,2,3], "bar" .> [0], "bar" .< [3,1]]
 -- foo = 1.2.3, bar > 0, bar < 3.1
+--
+-- Following properties hold:
+--
+-- @
+-- 'list' [] === 'mempty'
+-- forall t. 'list' [t] === t
+-- @
 list :: [PkgTemplate] -> PkgTemplate
 list = separatedBy $ Strict.Text.pack ", "
 
@@ -202,6 +264,13 @@ list = separatedBy $ Strict.Text.pack ", "
 --
 -- >>> options ["-I" <> var "prefix" </> "lib", "-I" <> var "extra"]
 -- -I${prefix}/lib -I${extra}
+--
+-- Following properties hold:
+--
+-- @
+-- 'options' [] === 'mempty'
+-- forall t. 'options' [t] === t
+-- @
 options :: [PkgTemplate] -> PkgTemplate
 options = separatedBy $ Strict.Text.singleton ' '
 
@@ -215,6 +284,12 @@ options = separatedBy $ Strict.Text.singleton ' '
 --
 -- >>> option "--foo=" $ var "prefix" </> "some dir"
 -- --foo="${prefix}/some dir"
+--
+-- Following property holds:
+--
+-- @
+-- forall t. option \"\" t === 'quote' t
+-- @
 option :: Strict.Text -> PkgTemplate -> PkgTemplate
 option opt = (lit opt <>) . quote
 
@@ -252,6 +327,8 @@ libraryPath = options . List.map (strOption "-L")
 
 -- {{{ I/O --------------------------------------------------------------------
 
+-- | Serialize 'PkgConfig' in to strict 'Strict.Text' and write it in to a
+-- specified file.
 writePkgConfig :: FilePath -> PkgConfig -> IO ()
 writePkgConfig file = Strict.Text.writeFile file . toStrictText
 
@@ -320,3 +397,75 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- > Requires: bar > 0, bar <= 3.1, baz = 1.2.3
 -- > Cflags: -I"${includedir}"
 -- > Libs: -L"${libdir}" -L"${libdir}/${arch}" -lfoo
+--
+-- Note that functions '&' and '.~', used in the example, are from
+-- <http://hackage.haskell.org/package/lens lens> library. Please consult its
+-- documentation for details.
+
+-- $pkgConfig
+--
+-- Data type that describes whole /pkg-config/ configuration file for one
+-- specific library. It also tries to preserve as much of /pkg-config/
+-- philosophy as possible.
+--
+-- Lenses are used for accessing individual fields of 'PkgConfig' data type.
+-- Example:
+--
+-- @
+-- 'def' & 'pkgVariables' .~ [(\"prefix\", \"\/usr\/local\")]
+--     & 'pkgName'      .~ \"some library\"
+--     -- ...
+--     & 'pkgLibs'      .~ 'includes'
+--         [ 'var' \"prefix\" '</>' \"include\" '</>' \"foo\"
+--         ]
+-- @
+
+-- $pkgTemplate
+--
+-- The /pkg-config/ tool allows variable declaration so that they can later be
+-- used in other parts of its configuration file. To give Haskell programmer
+-- the same power, this library provides 'PkgTemplate'. One can think of it as
+-- a string with named holes, i.e. places where variables will be expanded.
+-- Following is example of how two variables, namely @prefix@ and @includedir@,
+-- can be defined inside /pkg-config/ configuration file:
+--
+-- > prefix=/usr/local
+-- > includedir=${prefix}/include
+--
+-- 'PkgConfig' has a field 'pkgVariables' that is used to define variables and
+-- above example can be translated in to:
+--
+-- @
+-- 'def' & 'pkgVariables' .~
+--     [ (\"prefix\", \"\/usr\/local\")
+--     , (\"includedir\", 'var' \"prefix\" '</>' \"include\")
+--     ]
+-- @
+--
+-- Lot of similar properties of 'String' hold for 'Template' as well.
+-- Including the fact that 'Template' is monoid and therefore can be
+-- concatenated using monoid operations:
+--
+-- >>> strLit "foo" <> strLit "bar"
+-- foobar
+--
+-- Since 'Template' has 'IsString' instance, then, if @OverloadedStrings@
+-- language extension is enabled, it is possible to simplify above example in
+-- to:
+--
+-- >>> "foo" <> "bar" :: PkgTemplate
+-- foobar
+--
+-- For consistency instance for 'Default' type class is also provided and it
+-- holds following property:
+--
+-- @
+-- 'def' === 'mempty'
+-- @
+--
+-- Additionally following properties hold:
+--
+-- @
+-- 'lit' \"\" === 'mempty'
+-- 'var' \"\" =/= 'mempty'
+-- @

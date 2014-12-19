@@ -17,8 +17,8 @@ from [Shake build system][Shake Homepage].
 Example
 -------
 
-Following Haskell code is able to generate package config named `foo.pc` for
-library `foo`:
+Following Haskell code is able to generate package configuration file named
+`foo.pc` for library `foo`:
 
 ```haskell
 {-# LANGUAGE OverloadedStrings #-}
@@ -90,9 +90,8 @@ library:
 Note that asking for `--cflags` or other options would result in error saying
 that it is unable to find `bar` and `baz` libraries. That is OK, it means that
 it is able to parse file correctly, we just hadn't provided `bar.pc` and
-`baz.pc`. If we would delete lines that define `Requires:` field, then
-`pkg-config` would be able to give us `--cflags`, `--libs`, etc. You can try
-it.
+`baz.pc`. If we delete lines that define `Requires:` field, then `pkg-config`
+would be able to give us `--cflags`, `--libs`, etc. You can try it.
 
 
 [Hackage: hs-pkg-config]:
@@ -100,7 +99,7 @@ it.
   "Hackage: hs-pkg-config"
 [Pkg-config Homepage]:
   http://www.freedesktop.org/wiki/Software/pkg-config/
-  "Pkg-configh Homepage"
+  "Pkg-config Homepage"
 [Shake Homepage]:
   http://shakebuild.com 
   "Shake Homepage"

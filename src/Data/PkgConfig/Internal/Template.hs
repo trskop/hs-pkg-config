@@ -91,8 +91,8 @@ fragmentToStrictText frag = case frag of
   where
     -- There are two types of escaping in pkg-config. One is done by
     -- read_one_line() function, that uses '\' as escape character and then
-    -- there is trim_and_sub() that treats sequence of two '$' characters as
-    -- just one and doesn't perform variable expansion. Both mentioned
+    -- there is trim_and_sub() that treats sequence of two \'\$\' characters as
+    -- just one '$'and doesn't perform variable expansion. Both mentioned
     -- functions can be found in "parse.c" file.
 
     -- Escape all special characters including end-of-line sequences.
@@ -190,6 +190,7 @@ instance Show Template where
 instance IsString Template where
     fromString = strLit
 
+-- | @'def' '==' ('mempty' :: 'Template') === 'True'@
 instance Default Template where
     def = Template []
     {-# INLINE def #-}
@@ -198,7 +199,7 @@ instance Default Template where
 
 -- {{{ Smart Constructors -----------------------------------------------------
 
--- | Construct variable fragment of template.
+-- | Construct variable fragment of a template.
 --
 -- >>> var "prefix" <> lit "/bin"
 -- $prefix/bin
@@ -206,8 +207,8 @@ var :: Strict.Text -> PkgTemplate
 var v = Template [Variable v]
 {-# INLINE var #-}
 
--- | Construct literal fragment of template. This is useful if language
--- extension /OverloadedStrings/ is not enabled.
+-- | Construct literal fragment of a template. This is useful if language
+-- extension @OverloadedStrings@ is not enabled.
 --
 -- >>> var "prefix" <> lit "/bin"
 -- $prefix/bin
@@ -230,6 +231,9 @@ singletonLit = lit . Strict.Text.singleton
 -- {{{ Query Template ---------------------------------------------------------
 
 -- | List all variables mentioned in 'PkgTemplate'.
+--
+-- >>> variables $ var "foo" </> "bar" </> var "baz"
+-- ["foo","baz"]
 variables :: PkgTemplate -> [Strict.Text]
 variables (Template fragments) = variables' fragments
   where
