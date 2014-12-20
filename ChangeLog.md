@@ -15,6 +15,9 @@
 
 * Lot of documentation updates.
 
+* Uploaded to [Hackage][]:
+  <http://hackage.haskell.org/package/hs-pkg-config-0.2.0.0>
+
 
 ## Version 0.1.0.0
 
