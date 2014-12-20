@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -10,7 +11,8 @@
 --
 -- Maintainer:   peter.trsko@gmail.com
 -- Stability:    experimental
--- Portability:  NoImplicitPrelude
+-- Portability:  DeriveDataTypeable, NoImplicitPrelude, OverloadedStrings,
+--               RecordWildCards
 --
 -- Data type describing /pkg-config/ configuration file.
 module Data.PkgConfig.Internal.PkgConfig
@@ -50,6 +52,7 @@ import Data.Functor (Functor(fmap))
 import Data.List as List (filter, map)
 import Data.Monoid ((<>))
 import Data.Typeable (Typeable)
+import GHC.Generics (Generic)
 import Text.Show (Show)
 
 import qualified Data.Text as Strict (Text)
@@ -125,7 +128,7 @@ data PkgConfig = PkgConfig
     -- exposed to applications. The same rules as for @Cflags@ ('_pkgCflags') field apply
     -- here.
     }
-  deriving (Data, Show, Typeable)
+  deriving (Data, Generic, Show, Typeable)
 
 instance Default PkgConfig where
     def = PkgConfig
