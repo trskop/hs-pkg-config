@@ -75,6 +75,7 @@ module Data.PkgConfig
 
     -- ** Version Combinators
     , version
+    , versionInt
     , (~=), (~/=), (~<), (~>), (~<=), (~>=)
 
     -- ** Options Combinators
@@ -95,6 +96,7 @@ module Data.PkgConfig
   where
 
 import Data.Function ((.), ($))
+import Data.Int (Int)
 import Data.List as List (map)
 import Data.Monoid (Monoid(mempty), (<>))
 import Data.String (String)
@@ -184,6 +186,21 @@ version (v : vs) = case vs of
   where
     wordLit :: Word -> PkgTemplate
     wordLit = strLit . show
+
+-- | Variant of 'version' that takes list of integers. This function can be
+-- used to create 'PkgTemplate' from standard Haskell 'Data.Version.Version'
+-- data type.
+--
+-- >>> versionInt . versionBranch $ Version [0, 1, 2] []
+-- 0.1.2
+versionInt :: [Int] -> PkgTemplate
+versionInt []       = mempty
+versionInt (v : vs) = case vs of
+    [] -> intLit v
+    _  -> intLit v <.> versionInt vs
+  where
+    intLit :: Int -> PkgTemplate
+    intLit = strLit . show
 
 -- | Dependency on a package of exact version.
 --
