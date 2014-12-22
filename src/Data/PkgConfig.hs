@@ -189,6 +189,9 @@ version (v : vs) = case vs of
 --
 -- >>> "sqlite" ~= [3, 8, 7, 1]
 -- sqlite = 3.8.7.1
+--
+-- >>> list ["sqlite" ~= [3, 8, 7, 1], "alpha" ~= [7, 2]]
+-- sqlite = 3.8.7.1, alpha = 7.2
 (~=) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~=  ver = lit pkg <> strLit " = "  <> version ver
 
@@ -196,6 +199,9 @@ pkg ~=  ver = lit pkg <> strLit " = "  <> version ver
 --
 -- >>> "alpha" ~/= [7, 2]
 -- alpha != 7.2
+--
+-- >>> list ["sqlite" ~/= [3, 8, 7, 1], "alpha" ~/= [7, 2]]
+-- sqlite != 3.8.7.1, alpha != 7.2
 (~/=) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~/= ver = lit pkg <> strLit " != " <> version ver
 
@@ -204,6 +210,9 @@ pkg ~/= ver = lit pkg <> strLit " != " <> version ver
 --
 -- >>> "alpha" ~< [7, 3]
 -- alpha < 7.3
+--
+-- >>> list ["sqlite" ~< [3, 9], "alpha" ~< [7, 3]]
+-- sqlite < 3.9, alpha < 7.3
 (~<) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~<  ver = lit pkg <> strLit " < "  <> version ver
 
@@ -211,6 +220,9 @@ pkg ~<  ver = lit pkg <> strLit " < "  <> version ver
 --
 -- >>> "sqlite" ~> [3, 8]
 -- sqlite3 > 3.8
+--
+-- >>> list ["sqlite" ~> [3, 8], "alpha" ~> [7, 1]]
+-- sqlite > 3.8, alpha > 7.1
 (~>) :: Strict.Text -> [Word] -> PkgTemplate
 pkg ~>  ver = lit pkg <> strLit " > "  <> version ver
 
