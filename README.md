@@ -95,6 +95,15 @@ it is able to parse file correctly, we just hadn't provided `bar.pc` and
 would be able to give us `--cflags`, `--libs`, etc. You can try it.
 
 
+Building options
+----------------
+
+* `-fpedantic` (disabled by default)
+
+  Pass additional warning flags including `-Werror` to GHC during compilation.
+
+
+
 [Hackage: hs-pkg-config]:
   https://hackage.haskell.org/package/hs-pkg-config
   "Hackage: hs-pkg-config"
