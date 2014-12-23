@@ -1,7 +1,7 @@
 Hs-pkg-config
 =============
 
-[![Hackage](https://budueba.com/hackage/hs-pkg-config)][Hackage: hs-pkg-config]
+[![Hackage](http://img.shields.io/hackage/v/hs-pkg-config.svg)][Hackage: hs-pkg-config]
 [![BSD3 License](http://img.shields.io/badge/license-BSD3-brightgreen.svg)][tl;dr Legal: BSD3]
 
 
