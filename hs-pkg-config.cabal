@@ -11,7 +11,7 @@ description:
   For usage example see "Data.PkgConfig" module.
 
 homepage:             https://github.com/trskop/hs-pkg-config
-bug-reports:          https://github.com/trskop/lock-file/issues
+bug-reports:          https://github.com/trskop/hs-pkg-config/issues
 license:              BSD3
 license-file:         LICENSE
 author:               Peter Trško
