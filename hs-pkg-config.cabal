@@ -11,6 +11,7 @@ description:
   For usage example see "Data.PkgConfig" module.
 
 homepage:             https://github.com/trskop/hs-pkg-config
+bug-reports:          https://github.com/trskop/lock-file/issues
 license:              BSD3
 license-file:         LICENSE
 author:               Peter Trško
@@ -63,9 +64,9 @@ library
 
 source-repository head
   type:                 git
-  location:             git://github.com/trskop/between.git
+  location:             git://github.com/trskop/hs-pkg-config.git
 
 source-repository this
   type:                 git
-  location:             git://github.com/trskop/between.git
+  location:             git://github.com/trskop/hs-pkg-config.git
   tag:                  0.2.0.0
