@@ -1,6 +1,22 @@
 # ChangeLog / ReleaseNotes
 
 
+## Version 0.2.1.0
+
+* Derive `Generic` instance for `PkgConfig`.
+
+* Introduced functions:
+  * `versionInt :: [Int] -> PkgTemplate`
+  * `toString :: PkgConfig -> String`
+
+* Building option `-fpedantic`.
+
+* Documentation updates.
+
+* Uploaded to [Hackage][]:
+  <http://hackage.haskell.org/package/hs-pkg-config-0.2.1.0>
+
+
 ## Version 0.2.0.0
 
 * New functions in `Data.PkgCofig` module:
