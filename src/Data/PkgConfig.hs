@@ -52,6 +52,7 @@ module Data.PkgConfig
 
     -- ** Serialization
     , toStrictText
+    , toString
 
     -- ** I/O
     , writePkgConfig
@@ -76,7 +77,12 @@ module Data.PkgConfig
     -- ** Version Combinators
     , version
     , versionInt
-    , (~=), (~/=), (~<), (~>), (~<=), (~>=)
+    , (~=)
+    , (~/=)
+    , (~<)
+    , (~>)
+    , (~<=)
+    , (~>=)
 
     -- ** Options Combinators
     , option
@@ -105,7 +111,7 @@ import System.IO (IO, FilePath)
 import Text.Show (Show(show))
 
 import qualified Data.Text as Strict (Text)
-import qualified Data.Text as Strict.Text (pack, singleton)
+import qualified Data.Text as Strict.Text (pack, singleton, unpack)
 import qualified Data.Text.IO as Strict.Text (writeFile)
 
 import Data.PkgConfig.Internal.Template
@@ -317,7 +323,7 @@ options = separatedBy $ Strict.Text.singleton ' '
 -- Following property holds:
 --
 -- @
--- forall t. option \"\" t === 'quote' t
+-- forall t. 'option' \"\" t === 'quote' t
 -- @
 option :: Strict.Text -> PkgTemplate -> PkgTemplate
 option opt = (lit opt <>) . quote
@@ -353,6 +359,15 @@ libraryPath = options . List.map (strOption "-L")
 
 -- }}} Options Combinators ----------------------------------------------------
 -- }}} PkgTemplate Combinators ------------------------------------------------
+
+-- {{{ Serialization ----------------------------------------------------------
+
+-- | Serialize 'PkgConfig' in to strict 'Strict.Text' and then convert it to a
+-- 'String'.
+toString :: PkgConfig -> String
+toString = Strict.Text.unpack . toStrictText
+
+-- }}} Serialization ----------------------------------------------------------
 
 -- {{{ I/O --------------------------------------------------------------------
 
