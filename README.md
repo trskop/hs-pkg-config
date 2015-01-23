@@ -4,6 +4,8 @@ Hs-pkg-config
 [![Hackage](http://img.shields.io/hackage/v/hs-pkg-config.svg)][Hackage: hs-pkg-config]
 [![BSD3 License](http://img.shields.io/badge/license-BSD3-brightgreen.svg)][tl;dr Legal: BSD3]
 
+[![Build](https://travis-ci.org/trskop/hs-pkg-config.svg)](https://travis-ci.org/trskop/hs-pkg-config)
+
 
 Description
 -----------
