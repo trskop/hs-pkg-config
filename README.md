@@ -111,6 +111,9 @@ Building options
 [Hackage: hs-pkg-config]:
   https://hackage.haskell.org/package/hs-pkg-config
   "Hackage: hs-pkg-config"
+[Haskell.org]:
+  http://www.haskell.org
+  "The Haskell Programming Language"
 [Pkg-config Homepage]:
   http://www.freedesktop.org/wiki/Software/pkg-config/
   "Pkg-config Homepage"
