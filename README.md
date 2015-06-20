@@ -2,6 +2,8 @@ Hs-pkg-config
 =============
 
 [![Hackage](http://img.shields.io/hackage/v/hs-pkg-config.svg)][Hackage: hs-pkg-config]
+[![Hackage Dependencies](https://img.shields.io/hackage-deps/v/hs-pkg-config.svg)](http://packdeps.haskellers.com/reverse/hs-pkg-config)
+[![Haskell Programming Language](https://img.shields.io/badge/language-Haskell-blue.svg)][Haskell.org]
 [![BSD3 License](http://img.shields.io/badge/license-BSD3-brightgreen.svg)][tl;dr Legal: BSD3]
 
 [![Build](https://travis-ci.org/trskop/hs-pkg-config.svg)](https://travis-ci.org/trskop/hs-pkg-config)
@@ -113,7 +115,7 @@ Building options
   http://www.freedesktop.org/wiki/Software/pkg-config/
   "Pkg-config Homepage"
 [Shake Homepage]:
-  http://shakebuild.com 
+  http://shakebuild.com
   "Shake Homepage"
 [tl;dr Legal: BSD3]:
   https://tldrlegal.com/license/bsd-3-clause-license-%28revised%29
