@@ -5,6 +5,11 @@ description:
   Create /pkg-config/ configuration file from Haskell code using combinators
   specialized for this purpose.
   .
+  <https://wiki.freedesktop.org/www/Software/pkg-config/ Pkg-config> is a tool
+  for inserting correct compiler options when compiling libraries or
+  applications. It is language-agnostic, but mainly used for building various
+  C or C++ libraries and applications.
+  .
   One of the possible usage examples of this library is generating @.pc@ files
   from <http://shakebuild.com Shake build system>.
   .
@@ -16,7 +21,7 @@ license:              BSD3
 license-file:         LICENSE
 author:               Peter Trško
 maintainer:           peter.trsko@gmail.com
-copyright:            Copyright (c) 2014 Peter Trško
+copyright:            Copyright (c) 2014, Peter Trško
 category:             Data, Development
 build-type:           Simple
 cabal-version:        >=1.10

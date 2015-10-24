@@ -13,7 +13,10 @@ Description
 -----------
 
 Library for creating [pkg-config][Pkg-config Homepage] configuration files from
-Haskell.
+Haskell. [Pkg-config][Pkg-config Homepage] is a tool for inserting correct
+compiler options when compiling libraries or applications. It is
+language-agnostic, but mainly used for building various C or C++ libraries and
+applications.
 
 One of the possible usage examples of this library is generating `.pc` files
 from [Shake build system][Shake Homepage].
