@@ -36,31 +36,97 @@
 *.msp
 # }}} Global/Archives.gitignore ###############################################
 
+# {{{ Global/Emacs.gitignore ##################################################
+# -*- mode: gitignore; -*-
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Org-mode
+.org-id-locations
+*_archive
+
+# flymake-mode
+*_flymake.*
+
+# eshell files
+/eshell/history
+/eshell/lastdir
+
+# elpa packages
+/elpa/
+
+# reftex files
+*.rel
+
+# AUCTeX auto folder
+/auto/
+
+# cask packages
+.cask/
+dist/
+
+# Flycheck
+flycheck_*.el
+
+# server auth directory
+/server/
+
+# projectiles files
+.projectile
+
+# directory configuration
+.dir-locals.el
+# }}} Global/Emacs.gitignore ##################################################
+
 # {{{ Global/Linux.gitignore ##################################################
 *~
 
+# temporary files which can be created if a process still has a handle open of a deleted file
+.fuse_hidden*
+
 # KDE directory preferences
 .directory
+
+# Linux trash folder which might appear on any partition or disk
+.Trash-*
+
+# .nfs files are created when an open file is removed but is still being accessed
+.nfs*
 # }}} Global/Linux.gitignore ##################################################
 
-# {{{ Global/TortoiseGit.gitignore ############################################
-# Project-level settings
-/.tgitconfig
-# }}} Global/TortoiseGit.gitignore ############################################
+# {{{ Global/LyX.gitignore ####################################################
+# Ignore LyX backup and autosave files
+# http://www.lyx.org/
+*.lyx~
+*.lyx#
+# }}} Global/LyX.gitignore ####################################################
 
-# {{{ Global/vim.gitignore ####################################################
-[._]*.s[a-w][a-z]
-[._]s[a-w][a-z]
-*.un~
+# {{{ Global/Vim.gitignore ####################################################
+# swap
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-v][a-z]
+[._]sw[a-p]
+# session
 Session.vim
+# temporary
 .netrwhist
 *~
-# }}} Global/vim.gitignore ####################################################
+# auto-generated tag files
+tags
+# }}} Global/Vim.gitignore ####################################################
 
 # {{{ Global/Windows.gitignore ################################################
-# Windows image file caches
+# Windows thumbnail cache files
 Thumbs.db
 ehthumbs.db
+ehthumbs_vista.db
 
 # Folder config file
 Desktop.ini
@@ -80,6 +146,7 @@ $RECYCLE.BIN/
 
 # {{{ Haskell.gitignore #######################################################
 dist
+dist-*
 cabal-dev
 *.o
 *.hi
@@ -87,13 +154,23 @@ cabal-dev
 *.chs.h
 *.dyn_o
 *.dyn_hi
-.virtualenv
 .hpc
 .hsenv
 .cabal-sandbox/
 cabal.sandbox.config
-cabal.config
 *.prof
 *.aux
 *.hp
+*.eventlog
+.stack-work/
+cabal.project.local
+.HTF/
 # }}} Haskell.gitignore #######################################################
+
+# {{{ Local ###################################################################
+
+# Don't want to have a default stack file, since package is usually tested with
+# more then one Stackage versions. Also, let users decide what they want.
+stack.yaml
+
+# }}} Local ###################################################################
