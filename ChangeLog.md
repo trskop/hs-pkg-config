@@ -1,6 +1,11 @@
 # ChangeLog / ReleaseNotes
 
 
+## Version 0.2.1.1
+
+* Minor code cleanup.
+
+
 ## Version 0.2.1.0
 
 * Derive `Generic` instance for `PkgConfig`.

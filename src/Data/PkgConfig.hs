@@ -1,14 +1,14 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Create pkg-config configuration files
--- Copyright:    (c) 2014 Peter Trsko
+-- Copyright:    (c) 2014, 2017 Peter Trško
 -- License:      BSD3
 --
 -- Maintainer:   peter.trsko@gmail.com
 -- Stability:    experimental
--- Portability:  DeriveDataTypeable, NoImplicitPrelude
+-- Portability:  GHC specific language extensions.
 --
 -- Create /pkg-config/ configuration file from Haskell code using combinators
 -- specialized for this purpose. To learn more about /pkg-config/ please read
@@ -185,10 +185,11 @@ t1 <.> t2 = t1 <> singletonLit '.' <> t2
 -- >>> version [] == mempty
 -- True
 version :: [Word] -> PkgTemplate
-version []       = mempty
-version (v : vs) = case vs of
-    [] -> wordLit v
-    _  -> wordLit v <.> version vs
+version = \case
+    []     -> mempty
+    v : vs -> case vs of
+        [] -> wordLit v
+        _  -> wordLit v <.> version vs
   where
     wordLit :: Word -> PkgTemplate
     wordLit = strLit . show
@@ -200,10 +201,11 @@ version (v : vs) = case vs of
 -- >>> versionInt . versionBranch $ Version [0, 1, 2] []
 -- 0.1.2
 versionInt :: [Int] -> PkgTemplate
-versionInt []       = mempty
-versionInt (v : vs) = case vs of
-    [] -> intLit v
-    _  -> intLit v <.> versionInt vs
+versionInt = \case
+    []     -> mempty
+    v : vs -> case vs of
+        [] -> intLit v
+        _  -> intLit v <.> versionInt vs
   where
     intLit :: Int -> PkgTemplate
     intLit = strLit . show
@@ -277,9 +279,10 @@ pkg ~>= ver = lit pkg <> strLit " >= " <> version ver
 -- >>> separatedBy ", " ["foo", "bar", "baz"]
 -- foo, bar, baz
 separatedBy :: Strict.Text -> [PkgTemplate] -> PkgTemplate
-separatedBy _ []       = mempty
-separatedBy _ (x : []) = x
-separatedBy s (x : xs) = x <> lit s <> separatedBy s xs
+separatedBy s = \case
+    []     -> mempty
+    [x]    -> x
+    x : xs -> x <> lit s <> separatedBy s xs
 
 -- | Concatenate templates by inserting coma (\',\') in between.
 --

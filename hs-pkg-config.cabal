@@ -21,7 +21,7 @@ license:              BSD3
 license-file:         LICENSE
 author:               Peter Trško
 maintainer:           peter.trsko@gmail.com
-copyright:            Copyright (c) 2014, Peter Trško
+copyright:            Copyright (c) 2014, 2017 Peter Trško
 category:             Data, Development
 build-type:           Simple
 cabal-version:        >=1.10

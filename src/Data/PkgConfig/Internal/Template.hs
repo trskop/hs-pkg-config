@@ -1,15 +1,16 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Simple string template used by pkg-config
--- Copyright:    (c) 2014 Peter Trsko
+-- Copyright:    (c) 2014, 2017 Peter Trško
 -- License:      BSD3
 --
 -- Maintainer:   peter.trsko@gmail.com
 -- Stability:    experimental
--- Portability:  DeriveDataTypeable, DeriveGeneric, NoImplicitPrelude
+-- Portability:  GHC specific language extensions.
 --
 -- Simple string template used by /pkg-config/.
 module Data.PkgConfig.Internal.Template
@@ -85,7 +86,7 @@ type PkgTemplate = Template
 -- | Serialize fragment in to strict 'Strict.Text'. For literals function
 -- performs escaping of special characters.
 fragmentToStrictText :: Fragment -> Strict.Text
-fragmentToStrictText frag = case frag of
+fragmentToStrictText = \case
     Literal txt   -> escape txt
     Variable name -> Strict.Text.pack "${" <> name <> Strict.Text.singleton '}'
   where
@@ -101,11 +102,11 @@ fragmentToStrictText frag = case frag of
 
     -- Escape all special characters except end-of-line sequence.
     escapeChar :: Char -> Strict.Text
-    escapeChar c = Strict.Text.pack $ case c of
+    escapeChar = Strict.Text.pack . \case
         '$'  -> "$$"
         '#'  -> "\\#"
         '\\' -> "\\\\"
-        _    -> [c]
+        c    -> [c]
 
     -- Process text by splitting it on EOL, repeatedly, and escape special
     -- characters and end of line sequences.
@@ -237,9 +238,10 @@ singletonLit = lit . Strict.Text.singleton
 variables :: PkgTemplate -> [Strict.Text]
 variables (Template fragments) = variables' fragments
   where
-    variables' []                = []
-    variables' (x : xs)          = case x of
-        Literal _  -> variables' xs
-        Variable v -> v : variables' xs
+    variables' = \case
+        []     -> []
+        x : xs -> case x of
+            Literal _  -> variables' xs
+            Variable v -> v : variables' xs
 
 -- }}} Query Template ---------------------------------------------------------

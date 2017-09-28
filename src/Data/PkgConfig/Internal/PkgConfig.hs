@@ -6,13 +6,12 @@
 -- |
 -- Module:       $HEADER$
 -- Description:  Data type describing pkg-config configuration file
--- Copyright:    (c) 2014 Peter Trsko
+-- Copyright:    (c) 2014, 2017 Peter Trško
 -- License:      BSD3
 --
 -- Maintainer:   peter.trsko@gmail.com
 -- Stability:    experimental
--- Portability:  DeriveDataTypeable, NoImplicitPrelude, OverloadedStrings,
---               RecordWildCards
+-- Portability:  GHC specific language extensions.
 --
 -- Data type describing /pkg-config/ configuration file.
 module Data.PkgConfig.Internal.PkgConfig
@@ -120,13 +119,13 @@ data PkgConfig = PkgConfig
 
     , _pkgLibs :: PkgTemplate
     -- ^ Linking flags specific to this package and any required libraries that
-    -- don't support /pkg-config/. The same rules as for @Cflags@ ('_pkgCflags')
-    -- field apply here.
+    -- don't support /pkg-config/. The same rules as for @Cflags@
+    -- ('_pkgCflags') field apply here.
 
     , _pkgLibsPrivate :: PkgTemplate
     -- ^ Linking flags for private libraries required by this package but not
-    -- exposed to applications. The same rules as for @Cflags@ ('_pkgCflags') field apply
-    -- here.
+    -- exposed to applications. The same rules as for @Cflags@ ('_pkgCflags')
+    -- field apply here.
     }
   deriving (Data, Generic, Show, Typeable)
 
@@ -182,7 +181,7 @@ pkgVariables
     :: Functor f
     => ([PkgVariable] -> f [PkgVariable])
     -> PkgConfig -> f PkgConfig
-pkgVariables f cfg@(PkgConfig{_pkgVariables = a}) =
+pkgVariables f cfg@PkgConfig{_pkgVariables = a} =
     f a <$$> \b -> cfg{_pkgVariables = b}
 
 -- | Human-readable name of a library or package. This field is not used by
@@ -191,15 +190,14 @@ pkgName
     :: Functor f
     => (Strict.Text -> f Strict.Text)
     -> PkgConfig -> f PkgConfig
-pkgName f cfg@(PkgConfig{_pkgName = a}) =
-    f a <$$> \b -> cfg{_pkgName = b}
+pkgName f cfg@PkgConfig{_pkgName = a} = f a <$$> \b -> cfg{_pkgName = b}
 
 -- | Brief description of the package.
 pkgDescription
     :: Functor f
     => (Strict.Text -> f Strict.Text)
     -> PkgConfig -> f PkgConfig
-pkgDescription f cfg@(PkgConfig{_pkgDescription = a}) =
+pkgDescription f cfg@PkgConfig{_pkgDescription = a} =
     f a <$$> \b -> cfg{_pkgDescription = b}
 
 -- | URL where people can get more information about and download the package.
@@ -207,15 +205,14 @@ pkgUrl
     :: Functor f
     => (Strict.Text -> f Strict.Text)
     -> PkgConfig -> f PkgConfig
-pkgUrl f cfg@(PkgConfig{_pkgUrl = a}) =
-    f a <$$> \b -> cfg{_pkgUrl = b}
+pkgUrl f cfg@PkgConfig{_pkgUrl = a} = f a <$$> \b -> cfg{_pkgUrl = b}
 
 -- | Version of the package.
 pkgVersion
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgVersion f cfg@(PkgConfig{_pkgVersion = a}) =
+pkgVersion f cfg@PkgConfig{_pkgVersion = a} =
     f a <$$> \b -> cfg{_pkgVersion = b}
 
 -- | List of packages required by this package and their version bounds.
@@ -223,7 +220,7 @@ pkgRequires
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgRequires f cfg@(PkgConfig{_pkgRequires = a}) =
+pkgRequires f cfg@PkgConfig{_pkgRequires = a} =
     f a <$$> \b -> cfg{_pkgRequires = b}
 
 -- | Compiler flags specific to this package and any required libraries that
@@ -234,7 +231,7 @@ pkgRequiresPrivate
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgRequiresPrivate f cfg@(PkgConfig{_pkgRequiresPrivate = a}) =
+pkgRequiresPrivate f cfg@PkgConfig{_pkgRequiresPrivate = a} =
     f a <$$> \b -> cfg{_pkgRequiresPrivate = b}
 
 -- | An optional field describing packages that this one conflicts with. The
@@ -248,7 +245,7 @@ pkgConflicts
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgConflicts f cfg@(PkgConfig{_pkgConflicts = a}) =
+pkgConflicts f cfg@PkgConfig{_pkgConflicts = a} =
     f a <$$> \b -> cfg{_pkgConflicts = b}
 
 -- | Compiler flags specific to this package and any required libraries that
@@ -259,8 +256,7 @@ pkgCflags
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgCflags f cfg@(PkgConfig{_pkgCflags = a}) =
-    f a <$$> \b -> cfg{_pkgCflags = b}
+pkgCflags f cfg@PkgConfig{_pkgCflags = a} = f a <$$> \b -> cfg{_pkgCflags = b}
 
 -- | Linking flags specific to this package and any required libraries that
 -- don't support /pkg-config/. The same rules as for @Cflags@ ('pkgCflags')
@@ -269,8 +265,7 @@ pkgLibs
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgLibs f cfg@(PkgConfig{_pkgLibs = a}) =
-    f a <$$> \b -> cfg{_pkgLibs = b}
+pkgLibs f cfg@PkgConfig{_pkgLibs = a} = f a <$$> \b -> cfg{_pkgLibs = b}
 
 -- | Linking flags for private libraries required by this package but not
 -- exposed to applications. The same rules as for @Cflags@ ('pkgCflags') field
@@ -279,5 +274,5 @@ pkgLibsPrivate
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgLibsPrivate f cfg@(PkgConfig{_pkgLibsPrivate = a}) =
+pkgLibsPrivate f cfg@PkgConfig{_pkgLibsPrivate = a} =
     f a <$$> \b -> cfg{_pkgLibsPrivate = b}
