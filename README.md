@@ -2,11 +2,8 @@ Hs-pkg-config
 =============
 
 [![Hackage](http://img.shields.io/hackage/v/hs-pkg-config.svg)][Hackage: hs-pkg-config]
-[![Hackage Dependencies](https://img.shields.io/hackage-deps/v/hs-pkg-config.svg)](http://packdeps.haskellers.com/reverse/hs-pkg-config)
 [![Haskell Programming Language](https://img.shields.io/badge/language-Haskell-blue.svg)][Haskell.org]
 [![BSD3 License](http://img.shields.io/badge/license-BSD3-brightgreen.svg)][tl;dr Legal: BSD3]
-
-[![Build](https://travis-ci.org/trskop/hs-pkg-config.svg)](https://travis-ci.org/trskop/hs-pkg-config)
 
 
 Description
@@ -20,6 +17,10 @@ applications.
 
 One of the possible usage examples of this library is generating `.pc` files
 from [Shake build system][Shake Homepage].
+
+This library is compatible with [pkgconf][Pkgconf public repository] which is
+an alternative implementation of [pkg-config][Pkg-config Homepage] that
+provides additional functionality.
 
 
 Example
@@ -120,6 +121,9 @@ Building options
 [Pkg-config Homepage]:
   http://www.freedesktop.org/wiki/Software/pkg-config/
   "Pkg-config Homepage"
+[Pkgconf public repository]:
+  https://github.com/pkgconf/pkgconf
+  "pkgconf public repository"
 [Shake Homepage]:
   http://shakebuild.com
   "Shake Homepage"

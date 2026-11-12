@@ -4,10 +4,6 @@ module Main (main)
 
 import Data.String (IsString)
 
-import Data.Default.Class (Default(def))
-   -- From data-default-class library:
-   -- http://hackage.haskell.org/package/data-default-class
-
 import Control.Lens
    -- From lens library:
    -- http://hackage.haskell.org/package/lens
@@ -21,7 +17,7 @@ libraryBaseName = "foo"
 main :: IO ()
 main = writePkgConfig (libraryBaseName ++ ".pc") libPkgConfig
   where
-    libPkgConfig = def
+    libPkgConfig = empty
         & pkgVariables   .~
             [ ("prefix",     "/usr/local"              )
             , ("includedir", var "prefix" </> "include")
@@ -30,7 +26,7 @@ main = writePkgConfig (libraryBaseName ++ ".pc") libPkgConfig
             ]
         & pkgName        .~ libraryBaseName
         & pkgDescription .~ "Example pkg-config."
-        & pkgVersion     .~ version [1, 2, 3]
+        & pkgVersion     .~ versionWord [1, 2, 3]
         & pkgCflags      .~ includes [var "includedir"]
         & pkgRequires    .~ list
             [ "bar" ~> [0], "bar" ~<= [3, 1]

@@ -1,23 +1,25 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Data type describing pkg-config configuration file
--- Copyright:    (c) 2014, 2017 Peter Trško
+-- Copyright:    (c) 2014, 2017, 2026 Peter Trško
 -- License:      BSD3
 --
 -- Maintainer:   peter.trsko@gmail.com
 -- Stability:    experimental
 -- Portability:  GHC specific language extensions.
 --
--- Data type describing /pkg-config/ configuration file.
+-- __TL;DR:__ Data type describing /pkg-config/ configuration file.
 module Data.PkgConfig.Internal.PkgConfig
     (
     -- * PkgConfig
       PkgConfig(..)
+    , empty
 
     -- * Type Aliases
     , PkgVariable
@@ -35,7 +37,9 @@ module Data.PkgConfig.Internal.PkgConfig
     , pkgRequires
     , pkgRequiresPrivate
     , pkgConflicts
+    , pkgProvides
     , pkgCflags
+    , pkgCflagsPrivate
     , pkgLibs
     , pkgLibsPrivate
 
@@ -46,29 +50,34 @@ module Data.PkgConfig.Internal.PkgConfig
 
 import Data.Bool (not, otherwise)
 import Data.Data (Data)
-import Data.Function ((.), ($), flip)
-import Data.Functor (Functor(fmap))
+import Data.Function ((.), ($))
+import Data.Functor (Functor, (<&>))
 import Data.List as List (filter, map)
 import Data.Monoid ((<>))
-import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 import Text.Show (Show)
 
 import qualified Data.Text as Strict (Text)
 import qualified Data.Text as Strict.Text
 
-import Data.Default.Class (Default(def))
-
 import Data.PkgConfig.Internal.Template (PkgTemplate)
-import qualified Data.PkgConfig.Internal.Template as Template (toStrictText)
+import qualified Data.PkgConfig.Internal.Template as Template
+    ( empty
+    , toStrictText
+    )
 
 
 -- | Variable definition consisting of its name and value in form of
 -- 'PkgTemplate'.
 type PkgVariable = (Strict.Text, PkgTemplate)
 
+-- | Package name.
 type PkgName = Strict.Text
+
+-- | Brief package description.
 type PkgDescription = Strict.Text
+
+-- | URL where more package information can be obtained.
 type PkgUrl = Strict.Text
 
 -- | Package version may use variable expansion and so it is represented by
@@ -77,32 +86,32 @@ type PkgVersion = PkgTemplate
 
 -- | Representation of /pkg-config/ configuration file.
 data PkgConfig = PkgConfig
-    { _pkgVariables :: [PkgVariable]
+    { variables :: [PkgVariable]
     -- ^ Variable definitions.
 
-    , _pkgName :: PkgName
+    , name :: PkgName
     -- ^ Human-readable name for a library or package. This field is not used
     -- by /pkg-config/ tool for queries, because it uses @.pc@ file base name.
 
-    , _pkgDescription :: PkgDescription
+    , description :: PkgDescription
     -- ^ Brief description of the package.
 
-    , _pkgUrl :: PkgUrl
-    -- ^ URL where people can get more information about and download the
-    -- package.
+    , url :: PkgUrl
+    -- ^ URL where more package information can be obtained and where the
+    -- package can be downloaded.
 
-    , _pkgVersion :: PkgVersion
+    , version :: PkgVersion
     -- ^ Version of the package.
 
-    , _pkgRequires :: PkgTemplate
+    , requires :: PkgTemplate
     -- ^ List of packages required by this package and their version bounds.
 
-    , _pkgRequiresPrivate :: PkgTemplate
+    , requiresPrivate :: PkgTemplate
     -- ^ List of private packages required by this package but not exposed to
     -- applications. The version specific rules from the Requires field also
     -- apply here.
 
-    , _pkgConflicts :: PkgTemplate
+    , conflicts :: PkgTemplate
     -- ^ An optional field describing packages that this one conflicts with.
     -- The version specific rules from the Requires field also apply here. This
     -- field also takes multiple instances of the same package. E.g.:
@@ -111,55 +120,78 @@ data PkgConfig = PkgConfig
     -- Conflicts: bar \< 1.2.3, bar \>= 1.3.0.
     -- @
 
-    , _pkgCflags :: PkgTemplate
+    , provides :: PkgTemplate
+    -- ^ Dependencies that the package fills and that may be provided by an
+    -- alternate package.
+    --
+    -- This field is a /pkgconf/ extension.
+    --
+    -- @since 0.3.0.0
+
+    , cflags :: PkgTemplate
     -- ^ Compiler flags specific to this package and any required libraries
     -- that don't support /pkg-config/. If the required libraries support
     -- /pkg-config/, they should be added to @Requires@ ('_pkgRequires') or
     -- @Requires.private@ ('_pkgRequiresPrivate').
 
-    , _pkgLibs :: PkgTemplate
+    , cflagsPrivate :: PkgTemplate
+    -- ^ Compiler flags specific to this package and any required libraries
+    -- that don't support /pkg-config/ for when linking statically. If the
+    -- required libraries support /pkg-config/, they should be added to
+    -- @Requires@ ('pkgRequires') or @Requires.private@ ('pkgRequiresPrivate').
+    --
+    -- This field is a /pkgconf/ extension.
+    --
+    -- @since 0.3.0.0
+
+    , libs :: PkgTemplate
     -- ^ Linking flags specific to this package and any required libraries that
     -- don't support /pkg-config/. The same rules as for @Cflags@
     -- ('_pkgCflags') field apply here.
 
-    , _pkgLibsPrivate :: PkgTemplate
+    , libsPrivate :: PkgTemplate
     -- ^ Linking flags for private libraries required by this package but not
     -- exposed to applications. The same rules as for @Cflags@ ('_pkgCflags')
     -- field apply here.
     }
-  deriving (Data, Generic, Show, Typeable)
+  deriving stock (Data, Generic, Show)
 
-instance Default PkgConfig where
-    def = PkgConfig
-        { _pkgVariables = []
-        , _pkgName = Strict.Text.empty
-        , _pkgDescription = Strict.Text.empty
-        , _pkgUrl = Strict.Text.empty
-        , _pkgVersion = def
-        , _pkgRequires = def
-        , _pkgRequiresPrivate = def
-        , _pkgConflicts = def
-        , _pkgCflags = def
-        , _pkgLibs = def
-        , _pkgLibsPrivate = def
-        }
+-- | Empty `PkgConfig` with all fields unset or set to an empty value.
+empty :: PkgConfig
+empty = PkgConfig
+    { variables = []
+    , name = Strict.Text.empty
+    , description = Strict.Text.empty
+    , url = Strict.Text.empty
+    , version = Template.empty
+    , requires = Template.empty
+    , requiresPrivate = Template.empty
+    , conflicts = Template.empty
+    , provides = Template.empty
+    , cflags = Template.empty
+    , cflagsPrivate = Template.empty
+    , libs = Template.empty
+    , libsPrivate = Template.empty
+    }
 
 -- | Serialize 'PkgConfig' in to strict 'Strict.Text'.
 toStrictText :: PkgConfig -> Strict.Text
 toStrictText PkgConfig{..} = Strict.Text.concat
-    [ variablesToStrictText _pkgVariables
+    [ variablesToStrictText variables
     , Strict.Text.unlines [""]
     , Strict.Text.unlines $ List.filter (not . Strict.Text.null)
-        [ "Name"             <:>  _pkgName
-        , "Description"      <:>  _pkgDescription
-        , "URL"              <:>  _pkgUrl
-        , "Version"          <:>. _pkgVersion
-        , "Requires"         <:>. _pkgRequires
-        , "Requires.private" <:>. _pkgRequiresPrivate
-        , "Conflicts"        <:>. _pkgConflicts
-        , "Cflags"           <:>. _pkgCflags
-        , "Libs"             <:>. _pkgLibs
-        , "Libs.private"     <:>. _pkgLibsPrivate
+        [ "Name"             <:>  name
+        , "Description"      <:>  description
+        , "URL"              <:>  url
+        , "Version"          <:>. version
+        , "Requires"         <:>. requires
+        , "Requires.private" <:>. requiresPrivate
+        , "Conflicts"        <:>. conflicts
+        , "Provides"         <:>. provides
+        , "Cflags"           <:>. cflags
+        , "Cflags.private"   <:>. cflagsPrivate
+        , "Libs"             <:>. libs
+        , "Libs.private"     <:>. libsPrivate
         ]
     ]
   where
@@ -171,18 +203,14 @@ toStrictText PkgConfig{..} = Strict.Text.concat
 
     variablesToStrictText = Strict.Text.unlines . map varToText
       where
-        varToText (name, tmpl) = name <> "=" <> Template.toStrictText tmpl
-
-(<$$>) :: Functor f => f a -> (a -> b) -> f b
-(<$$>) = flip fmap
+        varToText (var, tmpl) = var <> "=" <> Template.toStrictText tmpl
 
 -- | Variable definitions.
 pkgVariables
     :: Functor f
     => ([PkgVariable] -> f [PkgVariable])
     -> PkgConfig -> f PkgConfig
-pkgVariables f cfg@PkgConfig{_pkgVariables = a} =
-    f a <$$> \b -> cfg{_pkgVariables = b}
+pkgVariables f cfg@PkgConfig{variables = a} = f a <&> \b -> cfg{variables = b}
 
 -- | Human-readable name of a library or package. This field is not used by
 -- /pkg-config/ tool for queries, because it uses @.pc@ file base name.
@@ -190,38 +218,36 @@ pkgName
     :: Functor f
     => (Strict.Text -> f Strict.Text)
     -> PkgConfig -> f PkgConfig
-pkgName f cfg@PkgConfig{_pkgName = a} = f a <$$> \b -> cfg{_pkgName = b}
+pkgName f cfg@PkgConfig{name = a} = f a <&> \b -> cfg{name = b}
 
 -- | Brief description of the package.
 pkgDescription
     :: Functor f
     => (Strict.Text -> f Strict.Text)
     -> PkgConfig -> f PkgConfig
-pkgDescription f cfg@PkgConfig{_pkgDescription = a} =
-    f a <$$> \b -> cfg{_pkgDescription = b}
+pkgDescription f cfg@PkgConfig{description = a} =
+    f a <&> \b -> cfg{description = b}
 
 -- | URL where people can get more information about and download the package.
 pkgUrl
     :: Functor f
     => (Strict.Text -> f Strict.Text)
     -> PkgConfig -> f PkgConfig
-pkgUrl f cfg@PkgConfig{_pkgUrl = a} = f a <$$> \b -> cfg{_pkgUrl = b}
+pkgUrl f cfg@PkgConfig{url = a} = f a <&> \b -> cfg{url = b}
 
 -- | Version of the package.
 pkgVersion
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgVersion f cfg@PkgConfig{_pkgVersion = a} =
-    f a <$$> \b -> cfg{_pkgVersion = b}
+pkgVersion f cfg@PkgConfig{version = a} = f a <&> \b -> cfg{version = b}
 
 -- | List of packages required by this package and their version bounds.
 pkgRequires
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgRequires f cfg@PkgConfig{_pkgRequires = a} =
-    f a <$$> \b -> cfg{_pkgRequires = b}
+pkgRequires f cfg@PkgConfig{requires = a} = f a <&> \b -> cfg{requires = b}
 
 -- | Compiler flags specific to this package and any required libraries that
 -- don't support /pkg-config/. If the required libraries support /pkg-config/,
@@ -231,8 +257,8 @@ pkgRequiresPrivate
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgRequiresPrivate f cfg@PkgConfig{_pkgRequiresPrivate = a} =
-    f a <$$> \b -> cfg{_pkgRequiresPrivate = b}
+pkgRequiresPrivate f cfg@PkgConfig{requiresPrivate = a} =
+    f a <&> \b -> cfg{requiresPrivate = b}
 
 -- | An optional field describing packages that this one conflicts with. The
 -- version specific rules from the Requires field also apply here. This field
@@ -245,8 +271,20 @@ pkgConflicts
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgConflicts f cfg@PkgConfig{_pkgConflicts = a} =
-    f a <$$> \b -> cfg{_pkgConflicts = b}
+pkgConflicts f cfg@PkgConfig{conflicts = a} =
+    f a <&> \b -> cfg{conflicts = b}
+
+-- | Dependencies that the package fills and that may be provided by an
+-- alternate package.
+--
+-- This field is a /pkgconf/ extension.
+--
+-- @since 0.3.0.0
+pkgProvides
+    :: Functor f
+    => (PkgTemplate -> f PkgTemplate)
+    -> PkgConfig -> f PkgConfig
+pkgProvides f cfg@PkgConfig{provides = a} = f a <&> \b -> cfg{provides = b}
 
 -- | Compiler flags specific to this package and any required libraries that
 -- don't support /pkg-config/. If the required libraries support /pkg-config/,
@@ -256,7 +294,22 @@ pkgCflags
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgCflags f cfg@PkgConfig{_pkgCflags = a} = f a <$$> \b -> cfg{_pkgCflags = b}
+pkgCflags f cfg@PkgConfig{cflags = a} = f a <&> \b -> cfg{cflags = b}
+
+-- | Compiler flags specific to this package and any required libraries that
+-- don't support /pkg-config/ for when linking statically. If the required
+-- libraries support /pkg-config/, they should be added to @Requires@
+-- ('pkgRequires') or @Requires.private@ ('pkgRequiresPrivate').
+--
+-- This field is a /pkgconf/ extension.
+--
+-- @since 0.3.0.0
+pkgCflagsPrivate
+    :: Functor f
+    => (PkgTemplate -> f PkgTemplate)
+    -> PkgConfig -> f PkgConfig
+pkgCflagsPrivate f cfg@PkgConfig{cflagsPrivate = a} =
+    f a <&> \b -> cfg{cflagsPrivate = b}
 
 -- | Linking flags specific to this package and any required libraries that
 -- don't support /pkg-config/. The same rules as for @Cflags@ ('pkgCflags')
@@ -265,7 +318,7 @@ pkgLibs
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgLibs f cfg@PkgConfig{_pkgLibs = a} = f a <$$> \b -> cfg{_pkgLibs = b}
+pkgLibs f cfg@PkgConfig{libs = a} = f a <&> \b -> cfg{libs = b}
 
 -- | Linking flags for private libraries required by this package but not
 -- exposed to applications. The same rules as for @Cflags@ ('pkgCflags') field
@@ -274,5 +327,5 @@ pkgLibsPrivate
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
-pkgLibsPrivate f cfg@PkgConfig{_pkgLibsPrivate = a} =
-    f a <$$> \b -> cfg{_pkgLibsPrivate = b}
+pkgLibsPrivate f cfg@PkgConfig{libsPrivate = a} =
+    f a <&> \b -> cfg{libsPrivate = b}

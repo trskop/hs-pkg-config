@@ -1,32 +1,28 @@
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Create pkg-config configuration files
--- Copyright:    (c) 2014, 2017 Peter Trško
+-- Copyright:    (c) 2014, 2017, 2026 Peter Trško
 -- License:      BSD3
 --
 -- Maintainer:   peter.trsko@gmail.com
 -- Stability:    experimental
 -- Portability:  GHC specific language extensions.
 --
--- Create /pkg-config/ configuration file from Haskell code using combinators
--- specialized for this purpose. To learn more about /pkg-config/ please read
--- one or both following articles:
---
--- * <http://people.freedesktop.org/~dbn/pkg-config-guide.html Guide to pkg-config>
---   by Dan Nicholson
---
--- * <https://autotools.io/ Autotools Mythbuster> by Diego Elio Pettenò:
---   <https://autotools.io/pkgconfig/index.html Chapter 4. Dependency discovery -- pkg-config>
+-- __TL;DR__ Create /pkg-config/ configuration files from Haskell code.
 module Data.PkgConfig
     (
+    -- $top-level
+
     -- * Usage
     -- $usage
 
     -- * PkgConfig
     -- $pkgConfig
-      PkgConfig
+      PkgConfig(..)
+    , empty
 
     -- ** Lenses
     , pkgVariables
@@ -75,7 +71,9 @@ module Data.PkgConfig
     , (<.>)
 
     -- ** Version Combinators
-    , version
+    , VersionField(..)
+    , versionFields
+    , versionWord
     , versionInt
     , (~=)
     , (~/=)
@@ -97,7 +95,7 @@ module Data.PkgConfig
     , separatedBy
 
     -- ** Queries
-    , variables
+    , getVariables
     )
   where
 
@@ -120,15 +118,30 @@ import Data.PkgConfig.Internal.Template
     , singletonLit
     , strLit
     , var
-    , variables
+    , getVariables
     )
 import Data.PkgConfig.Internal.PkgConfig
     ( PkgConfig
+        ( cflags
+        , cflagsPrivate
+        , conflicts
+        , description
+        , libs
+        , libsPrivate
+        , name
+        , provides
+        , requires
+        , requiresPrivate
+        , url
+        , variables
+        , version
+        )
     , PkgDescription
     , PkgName
     , PkgUrl
     , PkgVariable
     , PkgVersion
+    , empty
     , pkgCflags
     , pkgConflicts
     , pkgDescription
@@ -142,6 +155,34 @@ import Data.PkgConfig.Internal.PkgConfig
     , pkgVersion
     , toStrictText
     )
+
+
+-- $top-level
+--
+-- #top-level#
+--
+-- Create /pkg-config/ configuration files from Haskell code using combinators
+-- specialized for this purpose.
+--
+-- To learn more about /pkg-config/ please read one or both following articles:
+--
+-- * [Guide to pkg-config
+--   ](http://people.freedesktop.org/~dbn/pkg-config-guide.html) by Dan
+--   Nicholson
+--
+-- * [Autotools Mythbuster](https://autotools.io/) by Diego Elio Pettenò:
+--   [Chapter 4. Dependency discovery -- pkg-config
+--   ](https://autotools.io/pkgconfig/index.html)
+--
+-- This library also supports /pkgconf/, an alternative implementation of
+-- /pkg-config/. Be aware that while it maintains compatibility with
+-- /pkg-config/ it also provides additional functionality. For more information
+-- see:
+--
+-- * [@pkgconf.org@ homepage](http://pkgconf.org/)
+--
+-- * [@github.com\/pkgconf\/pkgconf@ public repository
+--   ](https://github.com/pkgconf/pkgconf)
 
 -- {{{ PkgTemplate Combinators ------------------------------------------------
 
@@ -177,38 +218,56 @@ t1 <.> t2 = t1 <> singletonLit '.' <> t2
 
 -- {{{ Version Combinators ----------------------------------------------------
 
--- | Treat list of integers as version number and construct template literal
--- out of it.
+-- | Represent a version field as a `PkgTemplate` value.
 --
--- >>> version [1, 2, 3]
--- 1.2.3
--- >>> version [] == mempty
--- True
-version :: [Word] -> PkgTemplate
-version = \case
-    []     -> mempty
-    v : vs -> case vs of
-        [] -> wordLit v
-        _  -> wordLit v <.> version vs
-  where
-    wordLit :: Word -> PkgTemplate
-    wordLit = strLit . show
+-- @since 0.3.0.0
+class VersionField a where
+    versionField :: a -> PkgTemplate
 
--- | Variant of 'version' that takes list of integers. This function can be
--- used to create 'PkgTemplate' from standard Haskell 'Data.Version.Version'
--- data type.
+instance VersionField Word where
+    versionField :: Word -> PkgTemplate
+    versionField = strLit . show
+
+instance VersionField Int where
+    versionField :: Int -> PkgTemplate
+    versionField = strLit . show
+
+-- | Treat list of version fields as version number and construct template
+-- literal out of it.
 --
--- >>> versionInt . versionBranch $ Version [0, 1, 2] []
+-- >>> versionFields @Word [1, 2, 3]
+-- 1.2.3
+-- >>> versionFields @Word [] == mempty
+-- True
+--
+-- >>> versionFields . versionBranch $ makeVersion [0, 1, 2]
 -- 0.1.2
-versionInt :: [Int] -> PkgTemplate
-versionInt = \case
+--
+-- >>> :set -XOverloadedRecordDot
+-- >>> import Data.Version
+-- >>> let v = makeVersion [1, 2, 3] in versionFields v.versionBranch
+-- 1.2.3
+--
+-- @since 0.3.0.0
+versionFields :: VersionField a => [a] -> PkgTemplate
+versionFields = \case
     []     -> mempty
     v : vs -> case vs of
-        [] -> intLit v
-        _  -> intLit v <.> versionInt vs
-  where
-    intLit :: Int -> PkgTemplate
-    intLit = strLit . show
+        [] -> versionField v
+        _  -> versionField v <.> versionFields vs
+
+-- | Specialised variant of 'versionFields'.
+--
+-- __Notes:__ Prior to version 0.3.0.0 this function was named @version@,
+-- however, that now conflicts with the `PkgConfig` field of the same name.
+--
+-- @since 0.3.0.0
+versionWord :: [Word] -> PkgTemplate
+versionWord = versionFields
+
+-- | Specialised variant of 'versionFields'.
+versionInt :: [Int] -> PkgTemplate
+versionInt = versionFields
 
 -- | Dependency on a package of exact version.
 --
@@ -218,7 +277,7 @@ versionInt = \case
 -- >>> list ["sqlite" ~= [3, 8, 7, 1], "alpha" ~= [7, 2]]
 -- sqlite = 3.8.7.1, alpha = 7.2
 (~=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~=  ver = lit pkg <> strLit " = "  <> version ver
+pkg ~=  ver = lit pkg <> strLit " = "  <> versionFields ver
 
 -- | Dependency on a package not of a specific version.
 --
@@ -228,7 +287,7 @@ pkg ~=  ver = lit pkg <> strLit " = "  <> version ver
 -- >>> list ["sqlite" ~/= [3, 8, 7, 1], "alpha" ~/= [7, 2]]
 -- sqlite != 3.8.7.1, alpha != 7.2
 (~/=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~/= ver = lit pkg <> strLit " != " <> version ver
+pkg ~/= ver = lit pkg <> strLit " != " <> versionFields ver
 
 -- | Dependency on a package with version greater or less then specified
 -- value.
@@ -239,7 +298,7 @@ pkg ~/= ver = lit pkg <> strLit " != " <> version ver
 -- >>> list ["sqlite" ~< [3, 9], "alpha" ~< [7, 3]]
 -- sqlite < 3.9, alpha < 7.3
 (~<) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~<  ver = lit pkg <> strLit " < "  <> version ver
+pkg ~<  ver = lit pkg <> strLit " < "  <> versionFields ver
 
 -- | Dependency on a package with version greater then specified value.
 --
@@ -249,17 +308,17 @@ pkg ~<  ver = lit pkg <> strLit " < "  <> version ver
 -- >>> list ["sqlite" ~> [3, 8], "alpha" ~> [7, 1]]
 -- sqlite > 3.8, alpha > 7.1
 (~>) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~>  ver = lit pkg <> strLit " > "  <> version ver
+pkg ~>  ver = lit pkg <> strLit " > "  <> versionFields ver
 
 -- | Dependency on a package with version greater or less or equal then
 -- specified value.
 (~<=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~<= ver = lit pkg <> strLit " <= " <> version ver
+pkg ~<= ver = lit pkg <> strLit " <= " <> versionFields ver
 
 -- | Dependency on a package with version greater or equal then specified
 -- value.
 (~>=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~>= ver = lit pkg <> strLit " >= " <> version ver
+pkg ~>= ver = lit pkg <> strLit " >= " <> versionFields ver
 
 -- }}} Version Combinators ----------------------------------------------------
 
@@ -270,8 +329,8 @@ pkg ~>= ver = lit pkg <> strLit " >= " <> version ver
 -- Following properties hold:
 --
 -- @
--- forall s. 'separatedBy' s [] === 'mempty'
--- forall s t. 'separatedBy' s [t] === t
+-- forall s. 'separatedBy' s [] ≡ 'mempty'
+-- forall s t. 'separatedBy' s [t] ≡ t
 -- @
 --
 -- Example:
@@ -292,8 +351,8 @@ separatedBy s = \case
 -- Following properties hold:
 --
 -- @
--- 'list' [] === 'mempty'
--- forall t. 'list' [t] === t
+-- 'list' [] ≡ 'mempty'
+-- forall t. 'list' [t] ≡ t
 -- @
 list :: [PkgTemplate] -> PkgTemplate
 list = separatedBy $ Strict.Text.pack ", "
@@ -306,8 +365,8 @@ list = separatedBy $ Strict.Text.pack ", "
 -- Following properties hold:
 --
 -- @
--- 'options' [] === 'mempty'
--- forall t. 'options' [t] === t
+-- 'options' [] ≡ 'mempty'
+-- forall t. 'options' [t] ≡ t
 -- @
 options :: [PkgTemplate] -> PkgTemplate
 options = separatedBy $ Strict.Text.singleton ' '
@@ -326,7 +385,7 @@ options = separatedBy $ Strict.Text.singleton ' '
 -- Following property holds:
 --
 -- @
--- forall t. 'option' \"\" t === 'quote' t
+-- forall t. 'option' \"\" t ≡ 'quote' t
 -- @
 option :: Strict.Text -> PkgTemplate -> PkgTemplate
 option opt = (lit opt <>) . quote
@@ -393,10 +452,6 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 --
 -- import Data.String ('IsString')
 --
--- import Data.Default.Class ('Default'('def'))
---   -- From data-default-class library:
---   -- <http://hackage.haskell.org/package/data-default-class>
---
 -- import Control.Lens
 --   -- From lens library:
 --   -- <http://hackage.haskell.org/package/lens>
@@ -410,7 +465,7 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- main :: IO ()
 -- main = 'writePkgConfig' (libraryBaseName '++' \".pc\") libPkgConfig
 --   where
---     libPkgConfig = 'def'
+--     libPkgConfig = 'empty'
 --         & 'pkgVariables'   .~
 --             [ (\"prefix\",     \"\/usr\/local\"              )
 --             , (\"includedir\", 'var' \"prefix\" '</>' \"include\")
@@ -419,7 +474,7 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 --             ]
 --         & 'pkgName'        .~ libraryBaseName
 --         & 'pkgDescription' .~ \"Example pkg-config.\"
---         & 'pkgVersion'     .~ 'version' [1, 2, 3]
+--         & 'pkgVersion'     .~ 'versionWord' [1, 2, 3]
 --         & 'pkgCflags'      .~ 'includes' ['var' \"includedir\"]
 --         & 'pkgRequires'    .~ 'list'
 --             [ \"bar\" '~>' [0], \"bar\" '~<=' [3, 1]
@@ -459,7 +514,8 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- Example:
 --
 -- @
--- 'def' & 'pkgVariables' .~ [(\"prefix\", \"\/usr\/local\")]
+-- 'empty'
+--     & 'pkgVariables' .~ [(\"prefix\", \"\/usr\/local\")]
 --     & 'pkgName'      .~ \"some library\"
 --     -- ...
 --     & 'pkgLibs'      .~ 'includes'
@@ -483,7 +539,7 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- above example can be translated in to:
 --
 -- @
--- 'def' & 'pkgVariables' .~
+-- 'empty' & 'pkgVariables' .~
 --     [ (\"prefix\", \"\/usr\/local\")
 --     , (\"includedir\", 'var' \"prefix\" '</>' \"include\")
 --     ]
@@ -503,16 +559,9 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- >>> "foo" <> "bar" :: PkgTemplate
 -- foobar
 --
--- For consistency instance for 'Default' type class is also provided and it
--- holds following property:
---
--- @
--- 'def' === 'mempty'
--- @
---
 -- Additionally following properties hold:
 --
 -- @
--- 'lit' \"\" === 'mempty'
--- 'var' \"\" =/= 'mempty'
+-- 'lit' \"\" ≡ 'mempty'
+-- 'var' \"\" ≢ 'mempty'
 -- @

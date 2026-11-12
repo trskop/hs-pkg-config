@@ -1,6 +1,20 @@
 # ChangeLog / ReleaseNotes
 
 
+## Version 0.3.0.0
+
+* Support `pkgconf` extensions.
+
+* Simplify `PkgConfig` data type definitions so that its easier to use it
+  directly (without lenses). This includes renaming of multiple functions to
+  avoid conflicts.
+
+* Drop `data-default-class` dependency.
+
+* Introduces `VersionField` type class and `versionFields` function that
+  generalises version construction.
+
+
 ## Version 0.2.1.1
 
 * Minor code cleanup.

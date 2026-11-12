@@ -1,18 +1,20 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Simple string template used by pkg-config
--- Copyright:    (c) 2014, 2017 Peter Trško
+-- Copyright:    (c) 2014, 2017, 2026 Peter Trško
 -- License:      BSD3
 --
 -- Maintainer:   peter.trsko@gmail.com
 -- Stability:    experimental
 -- Portability:  GHC specific language extensions.
 --
--- Simple string template used by /pkg-config/.
+-- __TL;DR:__ Simple string template used by /pkg-config/.
 module Data.PkgConfig.Internal.Template
     (
     -- * Template
@@ -21,6 +23,7 @@ module Data.PkgConfig.Internal.Template
     , Fragment(..)
 
     -- * Smart Constructors
+    , empty
     , var
     , lit
     , strLit
@@ -38,7 +41,7 @@ module Data.PkgConfig.Internal.Template
     , fragmentToStrictText
 
     -- * Query Template
-    , variables
+    , getVariables
     )
   where
 
@@ -48,8 +51,9 @@ import Data.Data (Data)
 import Data.Eq (Eq((==)))
 import Data.Foldable (Foldable(foldMap))
 import Data.Function ((.), ($), on)
-import Data.List as List ((++), map)
-import Data.Monoid (Monoid(mempty, mappend), (<>))
+import Data.List as List (map)
+import Data.Monoid (Monoid(mempty))
+import Data.Semigroup (Semigroup((<>)))
 import Data.String (IsString(fromString), String)
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
@@ -61,8 +65,6 @@ import qualified Data.Text.Lazy as Lazy (Text)
 import qualified Data.Text.Lazy.Builder as Text (Builder)
 import qualified Data.Text.Lazy.Builder as Text.Builder
 
-import Data.Default.Class (Default(def))
-
 
 -- {{{ Template Definition ----------------------------------------------------
 
@@ -71,12 +73,12 @@ import Data.Default.Class (Default(def))
 data Fragment
     = Literal  {-# UNPACK #-} !Strict.Text
     | Variable {-# UNPACK #-} !Strict.Text
-  deriving (Data, Eq, Generic, Typeable)
+  deriving stock (Data, Eq, Generic, Typeable)
 
 -- | 'Template' is a possibly empty sequence of fragments represented by
 -- 'Fragment' data type.
 newtype Template = Template [Fragment]
-  deriving (Data, Generic, Typeable)
+  deriving stock (Data, Generic, Typeable)
 
 -- | Template consists of variables and literal strings. All special characters
 -- (\'$\', \'#\', \'\\\' and end-of-line sequences) contained in literals are
@@ -177,28 +179,34 @@ toStrictText (Template fragments) =
 
 -- | Requires template to be converted in to lazy 'Lazy.Text'.
 instance Eq Template where
+    (==) :: Template -> Template -> Bool
     (==) = (==) `on` toLazyText
 
+instance Semigroup Template where
+    (<>) :: Template -> Template -> Template
+    Template fs <> Template fs' = Template (fs <> fs')
+
 instance Monoid Template where
+    mempty :: Template
     mempty = Template []
     {-# INLINE mempty #-}
 
-    Template fs `mappend` Template fs' = Template $ fs ++ fs'
-
 instance Show Template where
+    show :: Template -> String
     show = Strict.Text.unpack . toStrictText
 
+-- | Construct a literal, see `strLit` for details.
 instance IsString Template where
+    fromString :: String -> Template
     fromString = strLit
-
--- | @'def' '==' ('mempty' :: 'Template') === 'True'@
-instance Default Template where
-    def = Template []
-    {-# INLINE def #-}
 
 -- }}} Instances for Template -------------------------------------------------
 
 -- {{{ Smart Constructors -----------------------------------------------------
+
+-- | Empty template.
+empty :: PkgTemplate
+empty = Template []
 
 -- | Construct variable fragment of a template.
 --
@@ -235,8 +243,13 @@ singletonLit = lit . Strict.Text.singleton
 --
 -- >>> variables $ var "foo" </> "bar" </> var "baz"
 -- ["foo","baz"]
-variables :: PkgTemplate -> [Strict.Text]
-variables (Template fragments) = variables' fragments
+--
+-- __Notes:__ Prior to version 0.3.0.0 this function was named @variables@,
+-- however, that now conflicts with the `PkgConfig` field of the same name.
+--
+-- @since 0.3.0.0
+getVariables :: PkgTemplate -> [Strict.Text]
+getVariables (Template fragments) = variables' fragments
   where
     variables' = \case
         []     -> []
