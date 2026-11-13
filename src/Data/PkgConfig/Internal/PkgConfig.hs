@@ -1,9 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Data type describing pkg-config configuration file
@@ -57,11 +51,11 @@ import Data.Monoid ((<>))
 import GHC.Generics (Generic)
 import Text.Show (Show)
 
-import qualified Data.Text as Strict (Text)
-import qualified Data.Text as Strict.Text
+import Data.Text qualified as Strict (Text)
+import Data.Text qualified as Strict.Text
 
 import Data.PkgConfig.Internal.Template (PkgTemplate)
-import qualified Data.PkgConfig.Internal.Template as Template
+import Data.PkgConfig.Internal.Template qualified as Template
     ( empty
     , toStrictText
     )

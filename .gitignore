@@ -172,5 +172,6 @@ cabal.project.local
 # Don't want to have a default stack file, since package is usually tested with
 # more then one Stackage versions. Also, let users decide what they want.
 stack.yaml
+stack.yaml.lock
 
 # }}} Local ###################################################################

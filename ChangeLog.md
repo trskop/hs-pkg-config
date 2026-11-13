@@ -7,12 +7,24 @@
 
 * Simplify `PkgConfig` data type definitions so that its easier to use it
   directly (without lenses). This includes renaming of multiple functions to
-  avoid conflicts.
+  avoid conflicts. **breaking change**
 
-* Drop `data-default-class` dependency.
+* Drop `data-default-class` dependency. **breaking change**
 
-* Introduces `VersionField` type class and `versionFields` function that
-  generalises version construction.
+* Introduces `VersionField` type class, `versionFields`, and `ver` functions
+  that generalise version construction. In addition function `version` is now
+  named `versionWord`. It was renamed due to conflict with `PkgConfig` field
+  name. **breaking change**
+
+* Fixed `instance Show PkgTemplate` to use string encoding. **breaking change**
+
+* Introduces `package.yaml` as a primary source of truth instead of
+  `hs-pkg-config.cabal`.
+
+* Introduces `Eq` and `Show` instances for `Fragment` type for unit testing
+  purposes.
+
+* Initial set of unit tests.
 
 
 ## Version 0.2.1.1

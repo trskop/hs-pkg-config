@@ -1,0 +1,110 @@
+name: &this hs-pkg-config
+version: "0.3.0.0"
+synopsis: |
+  Create pkg-config configuration files
+description: |
+  Create /pkg-config/ configuration file from Haskell code using combinators
+  specialized for this purpose.
+
+  <https://wiki.freedesktop.org/www/Software/pkg-config/ Pkg-config> is a tool
+  for inserting correct compiler options when compiling libraries or
+  applications. It is language-agnostic, but mainly used for building various
+  C or C++ libraries and applications.
+
+  One of the possible usage examples of this library is generating @.pc@ files
+  from <http://shakebuild.com Shake build system>.
+
+  This library is compatible with <https://github.com/pkgconf/pkgconf Pkgconf>
+  which is an alternative implementation of /pkg-config/ that provides
+  additional functionality.
+
+  For usage examples see "Data.PkgConfig" module.
+
+github: trskop/hs-pkg-config
+license: BSD3
+license-file: LICENSE
+author: Peter Trško
+maintainer: peter.trsko@gmail.com
+copyright: (c) 2014, 2017, 2026 Peter Trško
+category: Data, Development
+
+extra-source-files:
+  - ChangeLog.md
+  - README.md
+  - example.hs
+
+flags:
+  pedantic:
+    description: Turn on additional warning flags
+    manual: true
+    default: false
+
+default-extensions:
+  - BlockArguments # GHC ≥8.6
+  - DeriveDataTypeable # GHC ≥6.8
+  - DeriveGeneric # GHC ≥7.2
+  - DerivingStrategies # GHC ≥8.2
+  - GeneralizedNewtypeDeriving # GHC ≥6.8
+  - ImportQualifiedPost # GHC ≥8.10
+  - InstanceSigs # GHC ≥7.6
+  - LambdaCase # GHC ≥7.6
+  - NoImplicitPrelude # GHC ≥6.8
+  - OverloadedStrings # GHC ≥6.8
+  - RecordWildCards # GHC ≥6.8
+
+dependencies:
+  - base >=4.17 && <5
+  # ^ Base 4.17.0.0 is bundled with GHC 9.4.1. This means that older GHC
+  # versions are no longer supported.
+
+# All the dependencies that we use with version bounds. This keeps them all
+# consistent by the virtue of sharing.
+_dependencies:
+  - &text                         "text >=0.11 && <3"
+  # ^ This library doesn't depend on anything special, therefore it should be
+  # able to work with wide range of versions. Lower bound 0.11 was chosen by
+  # "cabal init" and the upper bound was changed to reflect current newest
+  # version 1.2.0.3.
+
+  # Testing frameworks and testing specific packages:
+  - &tasty                        "tasty >=1.4 && <2"
+  - &tasty-hunit                  "tasty-hunit >=0.10 && <1"
+  - &tasty-quickcheck             "tasty-quickcheck >=0.10 && <1"
+
+ghc-options:
+  - "-Wall"
+  - "-Wcompat" # GHC ≥8.0
+  - "-Wimplicit-prelude" # GHC ≥6.8
+  - "-Wprepositive-qualified-module" # GHC ≥8.10
+  - "-Wunused-packages" # GHC ≥8.10
+
+when:
+  - condition: flag(pedantic)
+    ghc-options:
+      - "-Werror" # GHC ≥6.8
+
+library:
+  source-dirs: src
+
+  dependencies:
+    - *text
+
+  ghc-options:
+    - "-Wmissing-import-lists" # GHC ≥7.0
+
+tests:
+  hs-pkg-config-test:
+    source-dirs: test
+    main: Main.hs
+    dependencies:
+      - *this
+
+      - *tasty
+      - *tasty-hunit
+      - *tasty-quickcheck
+      - *text
+
+    ghc-options:
+      - "-threaded"
+      - "-rtsopts"
+      - "-with-rtsopts=-N"

@@ -1,84 +1,109 @@
-name:                 hs-pkg-config
-version:              0.3.0.0
-synopsis:             Create pkg-config configuration files
-description:
-  Create /pkg-config/ configuration file from Haskell code using combinators
-  specialized for this purpose.
-  .
-  <https://wiki.freedesktop.org/www/Software/pkg-config/ Pkg-config> is a tool
-  for inserting correct compiler options when compiling libraries or
-  applications. It is language-agnostic, but mainly used for building various
-  C or C++ libraries and applications.
-  .
-  One of the possible usage examples of this library is generating @.pc@ files
-  from <http://shakebuild.com Shake build system>.
-  .
-  This library is compatible with <https://github.com/pkgconf/pkgconf Pkgconf>
-  which is an alternative implementation of /pkg-config/ that provides
-  additional functionality.
-  .
-  For usage examples see "Data.PkgConfig" module.
+cabal-version: 1.12
 
-homepage:             https://github.com/trskop/hs-pkg-config
-bug-reports:          https://github.com/trskop/hs-pkg-config/issues
-license:              BSD3
-license-file:         LICENSE
-author:               Peter Trško
-maintainer:           peter.trsko@gmail.com
-copyright:            Copyright (c) 2014, 2017, 2026 Peter Trško
-category:             Data, Development
-build-type:           Simple
-cabal-version:        >=1.10
+-- This file has been generated from package.yaml by hpack version 0.39.6.
+--
+-- see: https://github.com/sol/hpack
 
+name:           hs-pkg-config
+version:        0.3.0.0
+synopsis:       Create pkg-config configuration files
+description:    Create /pkg-config/ configuration file from Haskell code using combinators
+                specialized for this purpose.
+                .
+                <https://wiki.freedesktop.org/www/Software/pkg-config/ Pkg-config> is a tool
+                for inserting correct compiler options when compiling libraries or
+                applications. It is language-agnostic, but mainly used for building various
+                C or C++ libraries and applications.
+                .
+                One of the possible usage examples of this library is generating @.pc@ files
+                from <http://shakebuild.com Shake build system>.
+                .
+                This library is compatible with <https://github.com/pkgconf/pkgconf Pkgconf>
+                which is an alternative implementation of /pkg-config/ that provides
+                additional functionality.
+                .
+                For usage examples see "Data.PkgConfig" module.
+category:       Data, Development
+homepage:       https://github.com/trskop/hs-pkg-config#readme
+bug-reports:    https://github.com/trskop/hs-pkg-config/issues
+author:         Peter Trško
+maintainer:     peter.trsko@gmail.com
+copyright:      (c) 2014, 2017, 2026 Peter Trško
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
 extra-source-files:
     ChangeLog.md
-  , README.md
-  , example.hs
-
-flag pedantic
-  description:          Pass additional warning flags to GHC.
-  default:              False
-  manual:               True
-
-library
-  hs-source-dirs:       src
-  default-language:     Haskell2010
-
-  exposed-modules:
-      Data.PkgConfig
-    , Data.PkgConfig.Internal.Template
-    , Data.PkgConfig.Internal.PkgConfig
-
-  other-extensions:
-      DeriveDataTypeable
-    , DeriveGeneric
-    , NoImplicitPrelude
-    , OverloadedStrings
-    , RecordWildCards
-
-  build-depends:
-      base >=4.17 && <5
-    -- ^ Base 4.17.0.0 is bundled with GHC 9.4.1. This means that older GHC
-    -- versions are no longer supported.
-    , text >=0.11 && <3
-    -- ^ This library doesn't depend on anything special, therefore it should
-    -- be able to work with wide range of versions. Lower bound 0.11 was
-    -- chosen by "cabal init" and the upper bound was changed to reflect
-    -- current newest version 1.2.0.3.
-
-  ghc-options:          -Wall
-  if flag(pedantic)
-    ghc-options:
-      -fwarn-tabs
-      -fwarn-implicit-prelude
-      -fwarn-missing-import-lists
---    -Werror
+    README.md
+    example.hs
 
 source-repository head
-  type:                 git
-  location:             git://github.com/trskop/hs-pkg-config.git
+  type: git
+  location: https://github.com/trskop/hs-pkg-config
 
-source-repository this
-  type:                 git
-  location:             git://github.com/trskop/hs-pkg-config.git
-  tag:                  0.3.0.0
+flag pedantic
+  description: Turn on additional warning flags
+  manual: True
+  default: False
+
+library
+  exposed-modules:
+      Data.PkgConfig
+      Data.PkgConfig.Internal.PkgConfig
+      Data.PkgConfig.Internal.Template
+  other-modules:
+      Paths_hs_pkg_config
+  hs-source-dirs:
+      src
+  default-extensions:
+      BlockArguments
+      DeriveDataTypeable
+      DeriveGeneric
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      InstanceSigs
+      LambdaCase
+      NoImplicitPrelude
+      OverloadedStrings
+      RecordWildCards
+  ghc-options: -Wall -Wcompat -Wimplicit-prelude -Wprepositive-qualified-module -Wunused-packages -Wmissing-import-lists
+  build-depends:
+      base >=4.17 && <5
+    , text >=0.11 && <3
+  default-language: Haskell2010
+  if flag(pedantic)
+    ghc-options: -Werror
+
+test-suite hs-pkg-config-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Tests.Data.PkgConfig
+      Tests.Data.PkgConfig.Internal.Template
+      Paths_hs_pkg_config
+  hs-source-dirs:
+      test
+  default-extensions:
+      BlockArguments
+      DeriveDataTypeable
+      DeriveGeneric
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      InstanceSigs
+      LambdaCase
+      NoImplicitPrelude
+      OverloadedStrings
+      RecordWildCards
+  ghc-options: -Wall -Wcompat -Wimplicit-prelude -Wprepositive-qualified-module -Wunused-packages -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.17 && <5
+    , hs-pkg-config
+    , tasty >=1.4 && <2
+    , tasty-hunit >=0.10 && <1
+    , tasty-quickcheck >=0.10 && <1
+    , text >=0.11 && <3
+  default-language: Haskell2010
+  if flag(pedantic)
+    ghc-options: -Werror

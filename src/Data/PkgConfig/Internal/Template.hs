@@ -1,9 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Simple string template used by pkg-config
@@ -25,6 +19,7 @@ module Data.PkgConfig.Internal.Template
     -- * Smart Constructors
     , empty
     , var
+    , strVar
     , lit
     , strLit
     , singletonLit
@@ -50,20 +45,20 @@ import Data.Char (Char)
 import Data.Data (Data)
 import Data.Eq (Eq((==)))
 import Data.Foldable (Foldable(foldMap))
-import Data.Function ((.), ($), on)
+import Data.Function ((.), on)
+import Data.Int (Int)
 import Data.List as List (map)
 import Data.Monoid (Monoid(mempty))
 import Data.Semigroup (Semigroup((<>)))
 import Data.String (IsString(fromString), String)
-import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
-import Text.Show (Show(show))
+import Text.Show (Show(showsPrec), ShowS)
 
-import qualified Data.Text as Strict (Text)
-import qualified Data.Text as Strict.Text
-import qualified Data.Text.Lazy as Lazy (Text)
-import qualified Data.Text.Lazy.Builder as Text (Builder)
-import qualified Data.Text.Lazy.Builder as Text.Builder
+import Data.Text qualified as Strict (Text)
+import Data.Text qualified as Strict.Text
+import Data.Text.Lazy qualified as Lazy (Text)
+import Data.Text.Lazy.Builder qualified as Text (Builder)
+import Data.Text.Lazy.Builder qualified as Text.Builder
 
 
 -- {{{ Template Definition ----------------------------------------------------
@@ -73,16 +68,16 @@ import qualified Data.Text.Lazy.Builder as Text.Builder
 data Fragment
     = Literal  {-# UNPACK #-} !Strict.Text
     | Variable {-# UNPACK #-} !Strict.Text
-  deriving stock (Data, Eq, Generic, Typeable)
+  deriving stock (Data, Eq, Generic, Show)
 
 -- | 'Template' is a possibly empty sequence of fragments represented by
 -- 'Fragment' data type.
 newtype Template = Template [Fragment]
-  deriving stock (Data, Generic, Typeable)
+  deriving stock (Data, Generic)
 
 -- | Template consists of variables and literal strings. All special characters
--- (\'$\', \'#\', \'\\\' and end-of-line sequences) contained in literals are
--- escaped when serialized.
+-- (@\'$\'@, @\'#\'@, @\'\\\'@ and end-of-line sequences) contained in literals
+-- are escaped when serialized.
 type PkgTemplate = Template
 
 -- | Serialize fragment in to strict 'Strict.Text'. For literals function
@@ -173,11 +168,11 @@ toLazyText = Text.Builder.toLazyText . toTextBuilder
 -- | Serialize template in to strict 'Strict.Text'.
 toStrictText :: Template -> Strict.Text
 toStrictText (Template fragments) =
-    Strict.Text.concat $ List.map fragmentToStrictText fragments
+    Strict.Text.concat (List.map fragmentToStrictText fragments)
 
 -- {{{ Instances for Template -------------------------------------------------
 
--- | Requires template to be converted in to lazy 'Lazy.Text'.
+-- | Requires template to be converted into lazy 'Lazy.Text'.
 instance Eq Template where
     (==) :: Template -> Template -> Bool
     (==) = (==) `on` toLazyText
@@ -186,14 +181,15 @@ instance Semigroup Template where
     (<>) :: Template -> Template -> Template
     Template fs <> Template fs' = Template (fs <> fs')
 
+-- | @`mempty` ≡ `empty`@
 instance Monoid Template where
     mempty :: Template
     mempty = Template []
     {-# INLINE mempty #-}
 
 instance Show Template where
-    show :: Template -> String
-    show = Strict.Text.unpack . toStrictText
+    showsPrec :: Int -> Template -> ShowS
+    showsPrec n = showsPrec n . toStrictText
 
 -- | Construct a literal, see `strLit` for details.
 instance IsString Template where
@@ -205,25 +201,52 @@ instance IsString Template where
 -- {{{ Smart Constructors -----------------------------------------------------
 
 -- | Empty template.
+--
+-- === Properties:
+--
+-- @
+-- `mempty` ≡ empty
+-- @
 empty :: PkgTemplate
 empty = Template []
 
 -- | Construct variable fragment of a template.
 --
 -- >>> var "prefix" <> lit "/bin"
--- $prefix/bin
+-- "${prefix}/bin"
+--
+-- === Properties:
+--
+-- @
+-- `var` \"\" ≡ `empty`
+-- @
 var :: Strict.Text -> PkgTemplate
-var v = Template [Variable v]
-{-# INLINE var #-}
+var v
+  | Strict.Text.null v = empty
+  | otherwise          = Template [Variable v]
+
+-- | Construct 'PkgTemplate' variable from 'String' by packing it in to strict
+-- 'Strict.Text' first.
+strVar :: String -> PkgTemplate
+strVar = var . Strict.Text.pack
 
 -- | Construct literal fragment of a template. This is useful if language
 -- extension @OverloadedStrings@ is not enabled.
 --
 -- >>> var "prefix" <> lit "/bin"
--- $prefix/bin
+-- "$prefix/bin"
+--
+-- >>> lit "${foo}"
+-- "$${foo}"
+--
+-- === Properties:
+--
+-- @
+-- `lit` \"\" ≡ `empty`
+-- @
 lit :: Strict.Text -> PkgTemplate
 lit l
-  | Strict.Text.null l = mempty
+  | Strict.Text.null l = empty
   | otherwise          = Template [Literal l]
 
 -- | Create 'PkgTemplate' literal from 'String' by packing it in to strict
@@ -241,20 +264,22 @@ singletonLit = lit . Strict.Text.singleton
 
 -- | List all variables mentioned in 'PkgTemplate'.
 --
--- >>> variables $ var "foo" </> "bar" </> var "baz"
+-- >>> getVariables $ var "foo" </> "bar" </> var "baz"
 -- ["foo","baz"]
 --
--- __Notes:__ Prior to version 0.3.0.0 this function was named @variables@,
--- however, that now conflicts with the `PkgConfig` field of the same name.
+-- === Notes:
+--
+-- Prior to version 0.3.0.0 this function was named @variables@, however, that
+-- now conflicts with the `PkgConfig` field of the same name.
 --
 -- @since 0.3.0.0
 getVariables :: PkgTemplate -> [Strict.Text]
-getVariables (Template fragments) = variables' fragments
+getVariables (Template fragments) = go fragments
   where
-    variables' = \case
+    go = \case
         []     -> []
         x : xs -> case x of
-            Literal _  -> variables' xs
-            Variable v -> v : variables' xs
+            Literal{}  -> go xs
+            Variable v -> v : go xs
 
 -- }}} Query Template ---------------------------------------------------------

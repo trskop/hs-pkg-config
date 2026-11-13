@@ -1,6 +1,3 @@
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 -- |
 -- Module:       $HEADER$
 -- Description:  Create pkg-config configuration files
@@ -20,7 +17,7 @@ module Data.PkgConfig
     -- $usage
 
     -- * PkgConfig
-    -- $pkgConfig
+    -- $pkg-config
       PkgConfig(..)
     , empty
 
@@ -54,7 +51,7 @@ module Data.PkgConfig
     , writePkgConfig
 
     -- * PkgTemplate
-    -- $pkgTemplate
+    -- $pkg-template
     , PkgTemplate
 
     -- ** Smart Constructors
@@ -65,6 +62,7 @@ module Data.PkgConfig
 
     -- ** Combinators
     , quote
+    , showLit
 
     -- ** FilePath-like Combinators
     , (</>)
@@ -72,7 +70,7 @@ module Data.PkgConfig
 
     -- ** Version Combinators
     , VersionField(..)
-    , versionFields
+    , ver
     , versionWord
     , versionInt
     , (~=)
@@ -100,26 +98,27 @@ module Data.PkgConfig
   where
 
 import Data.Function ((.), ($))
-import Data.Int (Int)
-import Data.List as List (map)
-import Data.Monoid (Monoid(mempty), (<>))
+import Data.Int (Int, Int32, Int64, Int8)
+import Data.List qualified as List (map)
+import Data.Semigroup ((<>))
 import Data.String (String)
-import Data.Word (Word)
-import System.IO (IO, FilePath)
+import Data.Word (Word, Word32, Word64, Word8)
+import System.IO (FilePath, IO)
 import Text.Show (Show(show))
 
-import qualified Data.Text as Strict (Text)
-import qualified Data.Text as Strict.Text (pack, singleton, unpack)
-import qualified Data.Text.IO as Strict.Text (writeFile)
+import Data.Text qualified as Strict (Text)
+import Data.Text qualified as Strict.Text (pack, singleton, unpack)
+import Data.Text.IO qualified as Strict.Text (writeFile)
 
 import Data.PkgConfig.Internal.Template
     ( PkgTemplate
+    , getVariables
     , lit
     , singletonLit
     , strLit
     , var
-    , getVariables
     )
+import Data.PkgConfig.Internal.Template qualified as Template (empty)
 import Data.PkgConfig.Internal.PkgConfig
     ( PkgConfig
         ( cflags
@@ -186,31 +185,35 @@ import Data.PkgConfig.Internal.PkgConfig
 
 -- {{{ PkgTemplate Combinators ------------------------------------------------
 
--- | Put quotation marks (\'\"\') around a template.
+-- | Put quotation marks (\'\"\') around a template. Escaping is not performed.
 --
 -- >>> quote $ var "prefix" </> "include"
--- "${prefix}/include"
+-- "\"${prefix}/include\""
 --
 -- >>> var "prefix" </> quote "dir with spaces"
--- ${prefix}/"dir with spaces"
+-- "${prefix}/\"dir with spaces\""
 quote :: PkgTemplate -> PkgTemplate
 quote t = singletonLit '"' <> t <> singletonLit '"'
+
+-- | Use `Show` instance to construct a literal.
+showLit :: Show a => a -> PkgTemplate
+showLit = strLit . show
 
 -- {{{ File Path Combinators --------------------------------------------------
 
 -- | Put literal \"/\" between two templates.
 --
 -- >>> var "prefix" </> lit "foo" <.> lit "pc"
--- ${prefix}/foo.pc
+-- "${prefix}/foo.pc"
 (</>) :: PkgTemplate -> PkgTemplate -> PkgTemplate
 t1 </> t2 = t1 <> singletonLit '/' <> t2
 
 -- | Put literal \".\" between two templates.
 --
 -- >>> var "prefix" </> lit "foo" <.> lit "pc"
--- ${prefix}/foo.pc
+-- "${prefix}/foo.pc"
 -- >>> var "major" <.> var "minor" <.> var "patch"
--- ${major}.${minor}.${patch}
+-- "${major}.${minor}.${patch}"
 (<.>) :: PkgTemplate -> PkgTemplate -> PkgTemplate
 t1 <.> t2 = t1 <> singletonLit '.' <> t2
 
@@ -222,103 +225,169 @@ t1 <.> t2 = t1 <> singletonLit '.' <> t2
 --
 -- @since 0.3.0.0
 class VersionField a where
+    -- | Create a literal from a version field.
+    --
+    -- >>> versionField (0 :: Word)
+    -- 0
+    --
+    -- @since 0.3.0.0
     versionField :: a -> PkgTemplate
+
+    -- | Treat list of version fields as version number and construct template
+    -- literal out of it.
+    --
+    -- >>> ver [1, 2, 3 :: Word]
+    -- "1.2.3"
+    -- >>> versionFields ([] :: [Word]) == mempty
+    -- True
+    --
+    -- >>> :set -XTypeApplications
+    -- >>> versionFields @Word [1, 2, 3]
+    -- "1.2.3"
+    -- >>> versionFields @Word [] == mempty
+    -- True
+    --
+    -- >>> versionFields . versionBranch $ makeVersion [0, 1, 2]
+    -- "0.1.2"
+    --
+    -- >>> :set -XOverloadedRecordDot
+    -- >>> import Data.Version
+    -- >>> let v = makeVersion [1, 2, 3] in versionFields v.versionBranch
+    -- "1.2.3"
+    --
+    -- @since 0.3.0.0
+    versionFields :: [a] -> PkgTemplate
+    versionFields = \case
+        []     -> Template.empty
+        v : vs -> case vs of
+            [] -> versionField v
+            _  -> versionField v <.> versionFields vs
 
 instance VersionField Word where
     versionField :: Word -> PkgTemplate
+    versionField = strLit . show
+
+instance VersionField Word8 where
+    versionField :: Word8 -> PkgTemplate
+    versionField = strLit . show
+
+instance VersionField Word32 where
+    versionField :: Word32 -> PkgTemplate
+    versionField = strLit . show
+
+instance VersionField Word64 where
+    versionField :: Word64 -> PkgTemplate
     versionField = strLit . show
 
 instance VersionField Int where
     versionField :: Int -> PkgTemplate
     versionField = strLit . show
 
+instance VersionField Int8 where
+    versionField :: Int8 -> PkgTemplate
+    versionField = strLit . show
+
+instance VersionField Int32 where
+    versionField :: Int32 -> PkgTemplate
+    versionField = strLit . show
+
+instance VersionField Int64 where
+    versionField :: Int64 -> PkgTemplate
+    versionField = strLit . show
+
 -- | Treat list of version fields as version number and construct template
 -- literal out of it.
 --
--- >>> versionFields @Word [1, 2, 3]
--- 1.2.3
--- >>> versionFields @Word [] == mempty
--- True
---
--- >>> versionFields . versionBranch $ makeVersion [0, 1, 2]
--- 0.1.2
---
--- >>> :set -XOverloadedRecordDot
--- >>> import Data.Version
--- >>> let v = makeVersion [1, 2, 3] in versionFields v.versionBranch
--- 1.2.3
+-- This is a more convenient alias for `versionFields`, see its documentation
+-- for more details as well as examples.
 --
 -- @since 0.3.0.0
-versionFields :: VersionField a => [a] -> PkgTemplate
-versionFields = \case
-    []     -> mempty
-    v : vs -> case vs of
-        [] -> versionField v
-        _  -> versionField v <.> versionFields vs
+ver :: VersionField a => [a] -> PkgTemplate
+ver = versionFields
 
--- | Specialised variant of 'versionFields'.
+-- | Specialised variant of `ver`.
 --
--- __Notes:__ Prior to version 0.3.0.0 this function was named @version@,
--- however, that now conflicts with the `PkgConfig` field of the same name.
+-- >>> versionWord [1, 2, 3]
+-- "1.2.3"
+--
+-- It's also possible to use `ver` directly instead:
+--
+-- >>> :set -XTypeApplications
+-- >>> ver @Word [1, 2, 3]
+-- "1.2.3"
+--
+-- === Notes:
+--
+-- Prior to version 0.3.0.0 this function was named @version@, however, that
+-- now conflicts with the `PkgConfig` field of the same name.
 --
 -- @since 0.3.0.0
 versionWord :: [Word] -> PkgTemplate
-versionWord = versionFields
+versionWord = ver
 
--- | Specialised variant of 'versionFields'.
+-- | Specialised variant of `ver`.
+--
+-- >>> versionInt [1, 2, 3]
+-- "1.2.3"
+--
+-- It's also possible to use `ver` directly instead:
+--
+-- >>> :set -XTypeApplications
+-- >>> ver @Int [1, 2, 3]
+-- "1.2.3"
 versionInt :: [Int] -> PkgTemplate
-versionInt = versionFields
+versionInt = ver
 
 -- | Dependency on a package of exact version.
 --
 -- >>> "sqlite" ~= [3, 8, 7, 1]
--- sqlite = 3.8.7.1
+-- "sqlite = 3.8.7.1"
 --
 -- >>> list ["sqlite" ~= [3, 8, 7, 1], "alpha" ~= [7, 2]]
--- sqlite = 3.8.7.1, alpha = 7.2
+-- "sqlite = 3.8.7.1, alpha = 7.2"
 (~=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~=  ver = lit pkg <> strLit " = "  <> versionFields ver
+pkg ~= v = lit pkg <> strLit " = " <> versionFields v
 
 -- | Dependency on a package not of a specific version.
 --
 -- >>> "alpha" ~/= [7, 2]
--- alpha != 7.2
+-- "alpha != 7.2"
 --
 -- >>> list ["sqlite" ~/= [3, 8, 7, 1], "alpha" ~/= [7, 2]]
--- sqlite != 3.8.7.1, alpha != 7.2
+-- "sqlite != 3.8.7.1, alpha != 7.2"
 (~/=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~/= ver = lit pkg <> strLit " != " <> versionFields ver
+pkg ~/= v = lit pkg <> strLit " != " <> versionFields v
 
 -- | Dependency on a package with version greater or less then specified
 -- value.
 --
 -- >>> "alpha" ~< [7, 3]
--- alpha < 7.3
+-- "alpha < 7.3"
 --
 -- >>> list ["sqlite" ~< [3, 9], "alpha" ~< [7, 3]]
--- sqlite < 3.9, alpha < 7.3
+-- "sqlite < 3.9, alpha < 7.3"
 (~<) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~<  ver = lit pkg <> strLit " < "  <> versionFields ver
+pkg ~< v = lit pkg <> strLit " < " <> versionFields v
 
 -- | Dependency on a package with version greater then specified value.
 --
 -- >>> "sqlite" ~> [3, 8]
--- sqlite3 > 3.8
+-- "sqlite3 > 3.8"
 --
 -- >>> list ["sqlite" ~> [3, 8], "alpha" ~> [7, 1]]
--- sqlite > 3.8, alpha > 7.1
+-- "sqlite > 3.8, alpha > 7.1"
 (~>) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~>  ver = lit pkg <> strLit " > "  <> versionFields ver
+pkg ~> v = lit pkg <> strLit " > " <> versionFields v
 
 -- | Dependency on a package with version greater or less or equal then
 -- specified value.
 (~<=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~<= ver = lit pkg <> strLit " <= " <> versionFields ver
+pkg ~<= v = lit pkg <> strLit " <= " <> versionFields v
 
 -- | Dependency on a package with version greater or equal then specified
 -- value.
 (~>=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~>= ver = lit pkg <> strLit " >= " <> versionFields ver
+pkg ~>= v = lit pkg <> strLit " >= " <> versionFields v
 
 -- }}} Version Combinators ----------------------------------------------------
 
@@ -336,17 +405,17 @@ pkg ~>= ver = lit pkg <> strLit " >= " <> versionFields ver
 -- Example:
 --
 -- >>> separatedBy ", " ["foo", "bar", "baz"]
--- foo, bar, baz
+-- "foo, bar, baz"
 separatedBy :: Strict.Text -> [PkgTemplate] -> PkgTemplate
 separatedBy s = \case
-    []     -> mempty
+    []     -> Template.empty
     [x]    -> x
     x : xs -> x <> lit s <> separatedBy s xs
 
 -- | Concatenate templates by inserting coma (\',\') in between.
 --
 -- >>> list ["foo" .= [1,2,3], "bar" .> [0], "bar" .< [3,1]]
--- foo = 1.2.3, bar > 0, bar < 3.1
+-- "foo = 1.2.3, bar > 0, bar < 3.1"
 --
 -- Following properties hold:
 --
@@ -360,7 +429,7 @@ list = separatedBy $ Strict.Text.pack ", "
 -- | Concatenate templates by inserting space (\' \') in between.
 --
 -- >>> options ["-I" <> var "prefix" </> "lib", "-I" <> var "extra"]
--- -I${prefix}/lib -I${extra}
+-- "-I${prefix}/lib -I${extra}"
 --
 -- Following properties hold:
 --
@@ -380,7 +449,7 @@ options = separatedBy $ Strict.Text.singleton ' '
 -- directory names.
 --
 -- >>> option "--foo=" $ var "prefix" </> "some dir"
--- --foo="${prefix}/some dir"
+-- "--foo=\"${prefix}/some dir\""
 --
 -- Following property holds:
 --
@@ -398,16 +467,16 @@ strOption = option . Strict.Text.pack
 -- include directory is wrapped in quotes (see 'quote' and 'option' functions).
 --
 -- >>> let d = var "prefix" </> "include" in includes [d, d </> var "arch"]
--- -I"${prefix}/include" -I"${prefix}/include/${arch}"
+-- "-I\"${prefix}/include\" -I\"${prefix}/include/${arch}\""
 -- >>> includes [var "prefix" </> "some dir"]
--- -I"${prefix}/some dir"
+-- "-I\"${prefix}/some dir\""
 includes :: [PkgTemplate] -> PkgTemplate
 includes = options . List.map (strOption "-I")
 
 -- | Take list of templates and make compiler library options.
 --
 -- >>> libraries ["m", "rt", "foo"]
--- -lm -lrt -lfoo
+-- "-lm -lrt -lfoo"
 libraries :: [PkgTemplate] -> PkgTemplate
 libraries = options . List.map (strLit "-l" <>)
 
@@ -415,7 +484,7 @@ libraries = options . List.map (strLit "-l" <>)
 -- include directory is wrapped in quotes (see 'quote' and 'option' functions).
 --
 -- >>> let l = var "prefix" </> lit "lib" in libraryPath [l, l </> var "arch"]
--- -L"${prefix}/lib" -L"${prefix}/lib/${arch}"
+-- "-L\"${prefix}/lib\" -L\"${prefix}/lib/${arch}\""
 libraryPath :: [PkgTemplate] -> PkgTemplate
 libraryPath = options . List.map (strOption "-L")
 
@@ -500,11 +569,11 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- > Cflags: -I"${includedir}"
 -- > Libs: -L"${libdir}" -L"${libdir}/${arch}" -lfoo
 --
--- Note that functions '&' and '.~', used in the example, are from
--- <http://hackage.haskell.org/package/lens lens> library. Please consult its
+-- Note that functions '&' and '.~', used in the example, are from [@lens@
+-- library](http://hackage.haskell.org/package/lens). Please consult its
 -- documentation for details.
 
--- $pkgConfig
+-- $pkg-config
 --
 -- Data type that describes whole /pkg-config/ configuration file for one
 -- specific library. It also tries to preserve as much of /pkg-config/
@@ -523,7 +592,7 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 --         ]
 -- @
 
--- $pkgTemplate
+-- $pkg-template
 --
 -- The /pkg-config/ tool allows variable declaration so that they can later be
 -- used in other parts of its configuration file. To give Haskell programmer
@@ -550,14 +619,14 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- concatenated using monoid operations:
 --
 -- >>> strLit "foo" <> strLit "bar"
--- foobar
+-- "foobar"
 --
 -- Since 'Template' has 'IsString' instance, then, if @OverloadedStrings@
 -- language extension is enabled, it is possible to simplify above example in
 -- to:
 --
 -- >>> "foo" <> "bar" :: PkgTemplate
--- foobar
+-- "foobar"
 --
 -- Additionally following properties hold:
 --
