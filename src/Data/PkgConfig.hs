@@ -63,6 +63,9 @@ module Data.PkgConfig
     -- ** Combinators
     , quote
     , showLit
+    , litWith
+    , varWith
+    , (.=)
 
     -- ** FilePath-like Combinators
     , (</>)
@@ -198,6 +201,34 @@ quote t = singletonLit '"' <> t <> singletonLit '"'
 -- | Use `Show` instance to construct a literal.
 showLit :: Show a => a -> PkgTemplate
 showLit = strLit . show
+
+-- | Constract a literal using provided function.
+--
+-- @
+-- litWith `fromString` :: `String` -> `PkgTemplate`
+-- litWith (`fromString` `.` `show`) :: `Show` a => a -> `PkgTemplate`
+-- @
+litWith :: (a -> Strict.Text) -> a -> PkgTemplate
+litWith f = lit . f
+
+-- | Constract a variable using provided function.
+--
+-- @
+-- varWith `fromString` :: `String` -> `PkgTemplate`
+-- varWith (`fromString` `.` `show`) :: `Show` a => a -> `PkgTemplate`
+-- @
+varWith :: (a -> Strict.Text) -> a -> PkgTemplate
+varWith f = lit . f
+
+-- | Variable definition.
+--
+-- @
+-- \"prefix\" `.=` \"\/usr\/local\"
+-- \"includedir\" `.=` `var` \"prefix\" `</>` \"include\"
+-- @
+(.=) :: Strict.Text -> PkgTemplate -> PkgVariable
+(.=) = (,)
+infixr 8 .=
 
 -- {{{ File Path Combinators --------------------------------------------------
 

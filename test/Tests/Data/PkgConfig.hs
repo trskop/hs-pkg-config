@@ -37,8 +37,8 @@ tests =
     , testCase "example 1" do
         let actual = empty
                 { variables =
-                   [ ("prefix", "/usr/local")
-                   , ("includedir", var "prefix" </> "include")
+                   [ "prefix" .= "/usr/local"
+                   , "includedir" .= var "prefix" </> "include"
                    ]
                 }
 
@@ -53,21 +53,30 @@ tests =
     , testCase "example 2" do
         let actual = empty
                 { variables =
-                   [ ("prefix", "/usr/local")
-                   , ("includedir", var "prefix" </> "include")
+                   [ "prefix"     .= "/usr/local"
+                   , "includedir" .= var "prefix" </> "include"
+                   , "libdir"     .= var "prefix" </> "lib"
+                   , "arch"       .= "i386"
                    ]
                 , name = "some library"
-                , libs = includes
-                    [ var "includedir" </> "foo"
+                , description = "Example pkg-config"
+                , cflags = includes [var "includedir" </> "foo"]
+                , libs = options
+                    [ libraryPath [var "libdir" </> var "arch"]
+                    , libraries ["foo"]
                     ]
                 }
 
             expected = unlines
                 [ "prefix=/usr/local"
                 , "includedir=${prefix}/include"
+                , "libdir=${prefix}/lib"
+                , "arch=i386"
                 , ""
                 , "Name: some library"
-                , "Libs: -I\"${includedir}/foo\""
+                , "Description: Example pkg-config"
+                , "Cflags: -I\"${includedir}/foo\""
+                , "Libs: -L\"${libdir}/${arch}\" -lfoo"
                 ]
 
         toString actual @?= expected
