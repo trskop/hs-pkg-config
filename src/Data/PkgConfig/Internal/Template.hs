@@ -69,7 +69,7 @@ import Test.QuickCheck.Instances.Text () -- Instances only
 
 -- {{{ Template Definition ----------------------------------------------------
 
--- | 'Template' fragment ca be either literal or variable. Literals are subject
+-- | `Template` fragment ca be either literal or variable. Literals are subject
 -- to escaping rules when serialized.
 data Fragment
     = Literal  {-# UNPACK #-} !Strict.Text
@@ -96,8 +96,8 @@ instance QuickCheck.CoArbitrary Fragment where
         Literal t  -> QuickCheck.variant @Integer 0 . QuickCheck.coarbitrary t
         Variable t -> QuickCheck.variant @Integer 1 . QuickCheck.coarbitrary t
 
--- | 'Template' is a possibly empty sequence of fragments represented by
--- 'Fragment' data type.
+-- | `Template` is a possibly empty sequence of fragments represented by
+-- `Fragment` data type.
 newtype Template = Template
     { fragments :: [Fragment]
     -- ^ Access underlying `Fragment`s.
@@ -119,7 +119,7 @@ newtype Template = Template
 -- are escaped when serialized.
 type PkgTemplate = Template
 
--- | Serialize fragment in to strict 'Strict.Text'. For literals function
+-- | Serialize fragment in to strict `Strict.Text`. For literals function
 -- performs escaping of special characters.
 fragmentToStrictText :: Fragment -> Strict.Text
 fragmentToStrictText = \case
@@ -192,26 +192,26 @@ fragmentToStrictText = \case
     cr = Strict.Text.singleton '\r'
     lf = Strict.Text.singleton '\r'
 
--- | Serialize fragment in to 'Text.Builder'.
+-- | Serialize fragment in to `Text.Builder`.
 fragmentToBuilder :: Fragment -> Text.Builder
 fragmentToBuilder = Text.Builder.fromText . fragmentToStrictText
 
--- | Serialize template in to 'Text.Builder'.
+-- | Serialize template in to `Text.Builder`.
 toTextBuilder :: Template -> Text.Builder
 toTextBuilder Template{fragments} = foldMap fragmentToBuilder fragments
 
--- | Serialize template in to lazy 'Lazy.Text'.
+-- | Serialize template in to lazy `Lazy.Text`.
 toLazyText :: Template -> Lazy.Text
 toLazyText = Text.Builder.toLazyText . toTextBuilder
 
--- | Serialize template in to strict 'Strict.Text'.
+-- | Serialize template in to strict `Strict.Text`.
 toStrictText :: Template -> Strict.Text
 toStrictText Template{fragments} =
     Strict.Text.concat (List.map fragmentToStrictText fragments)
 
 -- {{{ Instances for Template -------------------------------------------------
 
--- | Requires template to be converted into lazy 'Lazy.Text'.
+-- | Requires template to be converted into lazy `Lazy.Text`.
 instance Eq Template where
     (==) :: Template -> Template -> Bool
     (==) = (==) `on` toLazyText
@@ -256,8 +256,8 @@ var v
   | Strict.Text.null v = empty
   | otherwise          = Template [Variable v]
 
--- | Construct 'PkgTemplate' variable from 'String' by packing it in to strict
--- 'Strict.Text' first.
+-- | Construct `PkgTemplate` variable from `String` by packing it in to strict
+-- `Strict.Text` first.
 --
 -- @since 0.3.0.0
 strVar :: String -> PkgTemplate
@@ -282,8 +282,8 @@ lit l
   | Strict.Text.null l = empty
   | otherwise          = Template [Literal l]
 
--- | Create 'PkgTemplate' literal from 'String' by packing it in to strict
--- 'Strict.Text' first.
+-- | Create `PkgTemplate` literal from `String` by packing it in to strict
+-- `Strict.Text` first.
 --
 -- === Properties:
 --
@@ -293,7 +293,7 @@ lit l
 strLit :: String -> PkgTemplate
 strLit = lit . Strict.Text.pack
 
--- | Crate one character long 'PkgTemplate' literal.
+-- | Crate one character long `PkgTemplate` literal.
 singletonLit :: Char -> PkgTemplate
 singletonLit c = Template [Literal (Strict.Text.singleton c)]
 
@@ -316,7 +316,7 @@ null = \case
     Template [] -> True
     _           -> False
 
--- | List all variables mentioned in 'PkgTemplate'.
+-- | List all variables mentioned in `PkgTemplate`.
 --
 -- >>> getVariables $ var "foo" </> "bar" </> var "baz"
 -- ["foo","baz"]

@@ -62,7 +62,7 @@ import Data.PkgConfig.Internal.Template qualified as Template
 
 
 -- | Variable definition consisting of its name and value in form of
--- 'PkgTemplate'.
+-- `PkgTemplate`.
 type PkgVariable = (Strict.Text, PkgTemplate)
 
 -- | Package name.
@@ -75,30 +75,56 @@ type PkgDescription = Strict.Text
 type PkgUrl = Strict.Text
 
 -- | Package version may use variable expansion and so it is represented by
--- 'PkgConfig'.
+-- `PkgConfig`.
 type PkgVersion = PkgTemplate
 
 -- | Representation of /pkg-config/ configuration file.
 data PkgConfig = PkgConfig
     { variables :: [PkgVariable]
     -- ^ Variable definitions.
+    --
+    -- @
+    -- prefix=\/usr
+    -- libdir=${prefix}\/lib\/x86_64
+    -- includedir=${prefix}\/include
+    -- @
 
     , name :: PkgName
     -- ^ Human-readable name for a library or package. This field is not used
     -- by /pkg-config/ tool for queries, because it uses @.pc@ file base name.
+    --
+    -- @
+    -- Name: libsomething
+    -- @
 
     , description :: PkgDescription
     -- ^ Brief description of the package.
+    --
+    -- @
+    -- Description: Some example library
+    -- @
 
     , url :: PkgUrl
     -- ^ URL where more package information can be obtained and where the
     -- package can be downloaded.
+    --
+    -- @
+    -- URL: https:\/\/git.example.tld\/org\/project
+    -- @
 
     , version :: PkgVersion
     -- ^ Version of the package.
+    --
+    -- @
+    -- Version: 1.0.11
+    -- @
 
     , requires :: PkgTemplate
     -- ^ List of packages required by this package and their version bounds.
+    --
+    -- @
+    -- Requires: libssl libcrypto
+    -- @
 
     , requiresPrivate :: PkgTemplate
     -- ^ List of private packages required by this package but not exposed to
@@ -127,6 +153,10 @@ data PkgConfig = PkgConfig
     -- that don't support /pkg-config/. If the required libraries support
     -- /pkg-config/, they should be added to @Requires@ (@requires@ field) or
     -- @Requires.private@ (@requiresPrivate@ field).
+    --
+    -- @
+    -- Cflags: -I\"${includedir}\"
+    -- @
 
     , cflagsPrivate :: PkgTemplate
     -- ^ Compiler flags specific to this package and any required libraries
@@ -137,21 +167,36 @@ data PkgConfig = PkgConfig
     --
     -- This field is a /pkgconf/ extension.
     --
+    -- @
+    -- Cflags.private: -I"${includedir}" -DBUILD_STATIC
+    -- @
+    --
     -- @since 0.3.0.0
 
     , libs :: PkgTemplate
     -- ^ Linking flags specific to this package and any required libraries that
     -- don't support /pkg-config/. The same rules as for @Cflags@ (@cflags@
     -- field) apply here.
+    --
+    -- @
+    -- Libs: -L\"${libdir}\" -lssh
+    -- @
 
     , libsPrivate :: PkgTemplate
     -- ^ Linking flags for private libraries required by this package but not
     -- exposed to applications. The same rules as for @Cflags@ (@cflags@ field)
     -- apply here.
+    --
+    -- @
+    -- Libs.private: -lz -lm
+    -- @
     }
   deriving stock (Data, Generic, Show)
 
 -- | Empty `PkgConfig` with all fields unset or set to an empty value.
+--
+-- >>> toStrictText empty
+-- ""
 empty :: PkgConfig
 empty = PkgConfig
     { variables = []
@@ -169,7 +214,7 @@ empty = PkgConfig
     , libsPrivate = Template.empty
     }
 
--- | Serialize 'PkgConfig' in to strict 'Strict.Text'.
+-- | Serialize `PkgConfig` in to strict `Strict.Text`.
 toStrictText :: PkgConfig -> Strict.Text
 toStrictText PkgConfig{..} = Strict.Text.concat
     [ variablesToStrictText variables
@@ -249,8 +294,8 @@ pkgRequires f cfg@PkgConfig{requires = a} = f a <&> \b -> cfg{requires = b}
 
 -- | Compiler flags specific to this package and any required libraries that
 -- don't support /pkg-config/. If the required libraries support /pkg-config/,
--- they should be added to @Requires@ ('pkgRequires') or @Requires.private@
--- ('pkgRequiresPrivate').
+-- they should be added to @Requires@ (`pkgRequires`) or @Requires.private@
+-- (`pkgRequiresPrivate`).
 pkgRequiresPrivate
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
@@ -286,8 +331,8 @@ pkgProvides f cfg@PkgConfig{provides = a} = f a <&> \b -> cfg{provides = b}
 
 -- | Compiler flags specific to this package and any required libraries that
 -- don't support /pkg-config/. If the required libraries support /pkg-config/,
--- they should be added to @Requires@ ('pkgRequires') or @Requires.private@
--- ('pkgRequiresPrivate').
+-- they should be added to @Requires@ (`pkgRequires`) or @Requires.private@
+-- (`pkgRequiresPrivate`).
 pkgCflags
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
@@ -297,7 +342,7 @@ pkgCflags f cfg@PkgConfig{cflags = a} = f a <&> \b -> cfg{cflags = b}
 -- | Compiler flags specific to this package and any required libraries that
 -- don't support /pkg-config/ for when linking statically. If the required
 -- libraries support /pkg-config/, they should be added to @Requires@
--- ('pkgRequires') or @Requires.private@ ('pkgRequiresPrivate').
+-- (`pkgRequires`) or @Requires.private@ (`pkgRequiresPrivate`).
 --
 -- This field is a /pkgconf/ extension.
 --
@@ -310,7 +355,7 @@ pkgCflagsPrivate f cfg@PkgConfig{cflagsPrivate = a} =
     f a <&> \b -> cfg{cflagsPrivate = b}
 
 -- | Linking flags specific to this package and any required libraries that
--- don't support /pkg-config/. The same rules as for @Cflags@ ('pkgCflags')
+-- don't support /pkg-config/. The same rules as for @Cflags@ (`pkgCflags`)
 -- field apply here.
 pkgLibs
     :: Functor f
@@ -319,7 +364,7 @@ pkgLibs
 pkgLibs f cfg@PkgConfig{libs = a} = f a <&> \b -> cfg{libs = b}
 
 -- | Linking flags for private libraries required by this package but not
--- exposed to applications. The same rules as for @Cflags@ ('pkgCflags') field
+-- exposed to applications. The same rules as for @Cflags@ (`pkgCflags`) field
 -- apply here.
 pkgLibsPrivate
     :: Functor f

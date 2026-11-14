@@ -31,7 +31,7 @@ category: Data, Development
 extra-source-files:
   - ChangeLog.md
   - README.md
-  - example.hs
+  - examples/*.hs
 
 flags:
   pedantic:

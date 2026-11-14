@@ -13,6 +13,9 @@ module Data.PkgConfig
     (
     -- $top-level
 
+    -- * See also
+    -- $see-also
+
     -- * Usage
     -- $usage
 
@@ -184,20 +187,26 @@ import Data.PkgConfig.Internal.PkgConfig
 --   [Chapter 4. Dependency discovery -- pkg-config
 --   ](https://autotools.io/pkgconfig/index.html)
 --
--- This library also supports /pkgconf/, an alternative implementation of
--- /pkg-config/. Be aware that while it maintains compatibility with
--- /pkg-config/ it also provides additional functionality. For more information
--- see:
+-- This library also supports [/pkgconf/](http://pkgconf.org/), an alternative
+-- implementation of /pkg-config/. Be aware that while it maintains
+-- compatibility with /pkg-config/ it also provides additional functionality.
+
+-- $see-also
 --
--- * [@pkgconf.org@ homepage](http://pkgconf.org/)
+-- #see-also#
 --
--- * [@github.com\/pkgconf\/pkgconf@ public repository
---   ](https://github.com/pkgconf/pkgconf)
+-- * [@pc(5)@](https://man.archlinux.org/man/pc.5.en) manual page documenting
+--   /pkg-config/ file format as recognised by /pkgconf/.
 --
--- Another useful source is [/u-config/ ("micro-config")
--- ](https://github.com/skeeto/u-config), an alternative implementation of
--- /pkg-config/. It has a first class support for Windows, which exposes
--- various corner cases of /pkg-config/ design.
+-- * [@pkgconf(1)@](https://man.archlinux.org/man/pkgconf.1.en) manual page
+--   documenting /pkgconf/ command line interface.
+--
+-- * [/pkgconf/ public repository](https://github.com/pkgconf/pkgconf)
+--
+-- * [/u-config/ ("micro-config")
+--   ](https://github.com/skeeto/u-config), an alternative implementation of
+--   /pkg-config/. It has a first class support for Windows, which exposes
+--   various corner cases of /pkg-config/ design.
 
 -- {{{ PkgTemplate Combinators ------------------------------------------------
 
@@ -220,8 +229,8 @@ showLit = strLit . show
 -- | Constract a literal using provided function.
 --
 -- @
--- litWith `fromString` :: `String` -> `PkgTemplate`
--- litWith (`fromString` `.` `show`) :: `Show` a => a -> `PkgTemplate`
+-- litWith `Data.String.fromString` :: `String` -> `PkgTemplate`
+-- litWith (`Data.String.fromString` `.` `show`) :: `Show` a => a -> `PkgTemplate`
 -- @
 --
 -- @since 0.3.0.0
@@ -231,8 +240,8 @@ litWith f = lit . f
 -- | Constract a variable using provided function.
 --
 -- @
--- varWith `fromString` :: `String` -> `PkgTemplate`
--- varWith (`fromString` `.` `show`) :: `Show` a => a -> `PkgTemplate`
+-- varWith `Data.String.fromString` :: `String` -> `PkgTemplate`
+-- varWith (`Data.String.fromString` `.` `show`) :: `Show` a => a -> `PkgTemplate`
 -- @
 --
 -- @since 0.3.0.0
@@ -243,7 +252,7 @@ varWith f = lit . f
 --
 -- @
 -- \"prefix\" `.=` \"\/usr\/local\"
--- \"includedir\" `.=` `var` \"prefix\" `</>` \"include\"
+-- \"includedir\" `.=` (`var` \"prefix\" `</>` \"include\")
 -- @
 --
 -- @since 0.3.0.0
@@ -472,7 +481,7 @@ pkg ~>= v = lit pkg <> strLit " >= " <> versionFields v
 -- Following properties hold:
 --
 -- @
--- ∀ s. `separatedBy` s [] ≡ `mempty`
+-- ∀ s. `separatedBy` s [] ≡ `Data.Monoid.mempty`
 -- ∀ s t. `separatedBy` s [t] ≡ t
 -- ∀ s t₀…tᵢ…tₙ. tᵢ = `Data.Monoid.mempty` ⇒ `separatedBy` s [t₀,…,tᵢ,…,tₙ] = `separatedBy` s [t₀,…,tᵢ₋₁,tᵢ₊₁,…,tₙ]
 -- @
@@ -488,7 +497,7 @@ separatedBy s = \case
 
 -- | Concatenate templates by inserting coma (\',\') in between.
 --
--- >>> list ["foo" .= [1,2,3], "bar" .> [0], "bar" .< [3,1]]
+-- >>> list ["foo" ~= [1,2,3], "bar" ~> [0], "bar" ~< [3,1]]
 -- "foo = 1.2.3, bar > 0, bar < 3.1"
 --
 -- === Properties:
@@ -496,9 +505,9 @@ separatedBy s = \case
 -- Following properties hold:
 --
 -- @
--- 'list' [] ≡ 'mempty'
--- ∀ t. 'list' [t] ≡ t
--- ∀ t₀…tᵢ…tₙ. tᵢ = `mempty` ⇒ `list` [t₀,…,tᵢ,…,tₙ] = `list` [t₀,…,tᵢ₋₁,tᵢ₊₁,…,tₙ]
+-- `list` [] ≡ `Data.Monoid.mempty`
+-- ∀ t. `list` [t] ≡ t
+-- ∀ t₀…tᵢ…tₙ. tᵢ = `Data.Monoid.mempty` ⇒ `list` [t₀,…,tᵢ,…,tₙ] = `list` [t₀,…,tᵢ₋₁,tᵢ₊₁,…,tₙ]
 -- @
 list :: [PkgTemplate] -> PkgTemplate
 list = separatedBy ", "
@@ -513,8 +522,9 @@ list = separatedBy ", "
 -- Following properties hold:
 --
 -- @
--- 'options' [] ≡ 'mempty'
--- ∀ t. 'options' [t] ≡ t
+-- `options` [] ≡ `Data.Monoid.mempty`
+-- ∀ t. `options` [t] ≡ t
+-- ∀ t₀…tᵢ…tₙ. tᵢ = `Data.Monoid.mempty` ⇒ `options` [t₀,…,tᵢ,…,tₙ] = `options` [t₀,…,tᵢ₋₁,tᵢ₊₁,…,tₙ]
 -- @
 options :: [PkgTemplate] -> PkgTemplate
 options = separatedBy (Strict.Text.singleton ' ')
@@ -524,7 +534,7 @@ options = separatedBy (Strict.Text.singleton ' ')
 -- {{{ Options Combinators ----------------------------------------------------
 
 -- | Create template starting with option followed by its argument. Argument
--- is quoted using 'quote' function to prevent problems with spaces in
+-- is quoted using `quote` function to prevent problems with spaces in
 -- directory names.
 --
 -- >>> option "--foo=" $ var "prefix" </> "some dir"
@@ -535,17 +545,17 @@ options = separatedBy (Strict.Text.singleton ' ')
 -- Following property holds:
 --
 -- @
--- ∀ t. 'option' \"\" t ≡ 'quote' t
+-- ∀ t. `option` \"\" t ≡ `quote` t
 -- @
 option :: Strict.Text -> PkgTemplate -> PkgTemplate
 option opt = (lit opt <>) . quote
 
--- | Same as 'option', but takes 'String' instead of strict 'Strict.Text'.
+-- | Same as `option`, but takes `String` instead of strict `Strict.Text`.
 strOption :: String -> PkgTemplate -> PkgTemplate
 strOption = option . Strict.Text.pack
 
 -- | Take list of templates and make compiler include options. Template for
--- include directory is wrapped in quotes (see 'quote' and 'option' functions).
+-- include directory is wrapped in quotes (see `quote` and `option` functions).
 --
 -- >>> let d = var "prefix" </> "include" in includes [d, d </> var "arch"]
 -- "-I\"${prefix}/include\" -I\"${prefix}/include/${arch}\""
@@ -556,13 +566,13 @@ includes = options . List.map (strOption "-I")
 
 -- | Take list of templates and make compiler library options.
 --
--- >>> libraries ["m", "rt", "foo"]
--- "-lm -lrt -lfoo"
+-- >>> libraries ["m", "rt", "tinfo"]
+-- "-lm -lrt -tinfo"
 libraries :: [PkgTemplate] -> PkgTemplate
 libraries = options . List.map (strLit "-l" <>)
 
 -- | Take list of templates and make compiler library path options. Template
--- for include directory is wrapped in quotes (see 'quote' and 'option'
+-- for include directory is wrapped in quotes (see `quote` and `option`
 -- functions).
 --
 -- >>> let l = var "prefix" </> lit "lib" in libraryPath [l, l </> var "arch"]
@@ -575,8 +585,8 @@ libraryPath = options . List.map (strOption "-L")
 
 -- {{{ Serialization ----------------------------------------------------------
 
--- | Serialize 'PkgConfig' in to strict 'Strict.Text' and then convert it to a
--- 'String'.
+-- | Serialize `PkgConfig` in to strict `Strict.Text` and then convert it to a
+-- `String`.
 toString :: PkgConfig -> String
 toString = Strict.Text.unpack . toStrictText
 
@@ -584,7 +594,7 @@ toString = Strict.Text.unpack . toStrictText
 
 -- {{{ I/O --------------------------------------------------------------------
 
--- | Serialize 'PkgConfig' in to strict 'Strict.Text' and write it in to a
+-- | Serialize `PkgConfig` in to strict `Strict.Text` and write it in to a
 -- specified file.
 writePkgConfig :: FilePath -> PkgConfig -> IO ()
 writePkgConfig file = Strict.Text.writeFile file . toStrictText
@@ -601,43 +611,41 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- module Main (main)
 --   where
 --
--- import Data.String ('IsString')
+-- import "Data.String" (`Data.String.IsString`)
 --
--- import Control.Lens
---   -- From lens library:
---   -- <http://hackage.haskell.org/package/lens>
+-- import System.FilePath (addExtension)
+--   -- From filepath library:
+--   -- <http://hackage.haskell.org/package/filepath>
 --
--- import Data.PkgConfig
+-- import "Data.PkgConfig"
 --
 --
--- libraryBaseName :: 'IsString' a => a
--- libraryBaseName = \"foo\"
+-- libBaseName :: `Data.String.IsString` a => a
+-- libBaseName = \"foo\"
 --
 -- main :: IO ()
--- main = 'writePkgConfig' (libraryBaseName '<>' \".pc\") libPkgConfig
+-- main = `writePkgConfig` (libBaseName \`addExtension\` \"pc\") libPkgConfig
 --   where
---     libPkgConfig = 'empty'
---         & 'pkgVariables'   .~
+--     libPkgConfig = `empty`
+--         { `variables`   =
 --             [ \"prefix\"     `.=` \"\/usr\/local\"
 --             , \"includedir\" `.=` (`var` \"prefix\" `</>` \"include\")
 --             , \"libdir\"     `.=` (`var` \"prefix\" `</>` \"lib\")
 --             , \"arch\"       `.=` \"i386\"
 --             ]
---         & 'pkgName'        .~ libraryBaseName
---         & 'pkgDescription' .~ \"Example pkg-config.\"
---         & 'pkgVersion'     .~ 'versionWord' [1, 2, 3]
---         & 'pkgCflags'      .~ 'includes' ['var' \"includedir\"]
---         & 'pkgRequires'    .~ 'list'
---             [ \"bar\" '~>' [0], \"bar\" '~<=' [3, 1]
---             , \"baz\" '~=' [1, 2, 3]
---             ]
---         & 'pkgLibs'        .~ 'options'
---             [ 'libraryPath'
---                 [ 'var' \"libdir\"
---                 , 'var' \"libdir\" '</>' 'var' \"arch\"
+--         , `name`        = libBaseName
+--         , `description` = \"Example pkg-config.\"
+--         , `version`     = `ver` [1, 2, 3 :: Word]
+--         , `cflags`      = `includes` [`var` \"includedir\"]
+--         , `requires`    = `list` ["tinfo" ~> [1, 0]]
+--         , `libs`        = `options`
+--             [ `libraryPath`
+--                 [ `var` \"libdir\"
+--                 , `var` \"libdir\" `</>` `var` \"arch\"
 --                 ]
---             , 'libraries' [libraryBaseName]
+--             , `libraries` [libBaseName]
 --             ]
+--         }
 -- @
 --
 -- Content of generated @foo.pc@:
@@ -650,38 +658,63 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- > Name: foo
 -- > Description: Example pkg-config.
 -- > Version: 1.2.3
--- > Requires: bar > 0, bar <= 3.1, baz = 1.2.3
+-- > Requires: tinfo > 1.0
 -- > Cflags: -I"${includedir}"
 -- > Libs: -L"${libdir}" -L"${libdir}/${arch}" -lfoo
---
--- Note that functions '&' and '.~', used in the example, are from [@lens@
--- library](http://hackage.haskell.org/package/lens). Please consult its
--- documentation for details.
 
 -- $pkg-config
 --
 -- Data type that describes whole /pkg-config/ configuration file for one
--- specific library. It also tries to preserve as much of /pkg-config/
--- philosophy as possible.
+-- specific library. It also tries to preserve as much of /pkg-config/ \/
+-- /pkgconf/ philosophy as possible.
 --
--- Lenses can be used for accessing individual fields of 'PkgConfig' data type.
+-- @
+-- `empty`
+--     { `variables` = [\"prefix\" `.=` \"\/usr\/local\"]
+--     , `name`      = \"some library\"
+--     -- ...
+--     , `libs`      = `includes`
+--         [ `var` \"prefix\" `</>` \"include\" `</>` \"foo\"
+--         ]
+--     }
+-- @
+--
+-- There is another approach that can be useful in some cases.
+--
+-- @
+-- `empty` & \\`PkgConfig`{..} -> `PkgConfig`
+--     { `variables` = [\"prefix\" `.=` \"\/usr\/local\"]
+--     , `name`      = \"some library\"
+--     -- ...
+--     , `libs`      = `includes`
+--         [ `var` \"prefix\" `</>` \"include\" `</>` \"foo\"
+--         ]
+--     , ..
+--     }
+-- @
+--
+-- Lenses can be used for accessing individual fields of `PkgConfig` data type.
 -- Example:
 --
 -- @
--- 'empty'
---     & 'pkgVariables' .~ [\"prefix\" `.=` \"\/usr\/local\"]
---     & 'pkgName'      .~ \"some library\"
+-- `empty`
+--     & `pkgVariables` .~ [\"prefix\" `.=` \"\/usr\/local\"]
+--     & `pkgName`      .~ \"some library\"
 --     -- ...
---     & 'pkgLibs'      .~ 'includes'
---         [ 'var' \"prefix\" '</>' \"include\" '</>' \"foo\"
+--     & `pkgLibs`      .~ `includes`
+--         [ `var` \"prefix\" `</>` \"include\" `</>` \"foo\"
 --         ]
 -- @
+--
+-- Note that function @.~@, used in the example, is from [@lens@ library
+-- ](http://hackage.haskell.org/package/lens). Please consult its documentation
+-- for details.
 
 -- $pkg-template
 --
 -- The /pkg-config/ tool allows variable declaration so that they can later be
 -- used in other parts of its configuration file. To give Haskell programmer
--- the same power, this library provides 'PkgTemplate'. One can think of it as
+-- the same power, this library provides `PkgTemplate`. One can think of it as
 -- a string with named holes, i.e. places where variables will be expanded.
 -- Following is example of how two variables, namely @prefix@ and @includedir@,
 -- can be defined inside /pkg-config/ configuration file:
@@ -689,33 +722,41 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- > prefix=/usr/local
 -- > includedir=${prefix}/include
 --
--- 'PkgConfig' has a field 'pkgVariables' that is used to define variables and
+-- `PkgConfig` has a field `variables` that is used to define variables and
 -- above example can be translated in to:
 --
 -- @
--- `empty` `Data.Function.&` `pkgVariables` .~
---     [ \"prefix\" `.=` \"\/usr\/local\"
---     , \"includedir\" `.=` `var` \"prefix\" `</>` \"include\"
---     ]
+-- `empty`
+--     { `variables` =
+--         [ \"prefix\" `.=` \"\/usr\/local\"
+--         , \"includedir\" `.=` `var` \"prefix\" `</>` \"include\"
+--         ]
+--     }
 -- @
 --
--- Lot of similar properties of 'String' hold for 'Template' as well.
--- Including the fact that 'Template' is monoid and therefore can be
+-- Lot of similar properties of `String` hold for `Template` as well.
+-- Including the fact that `Template` is monoid and therefore can be
 -- concatenated using monoid operations:
 --
 -- >>> strLit "foo" <> strLit "bar"
 -- "foobar"
 --
--- Since 'Template' has 'IsString' instance, then, if @OverloadedStrings@
--- language extension is enabled, it is possible to simplify above example in
--- to:
+-- Since `PkgTemplate` has `Data.String.IsString` instance, then, if
+-- @OverloadedStrings@ language extension is enabled, it is possible to
+-- simplify above example in to:
 --
 -- >>> "foo" <> "bar" :: PkgTemplate
 -- "foobar"
 --
+-- On the other hand variables behave slightly differently, yet the
+-- `PkgTemplate` still forms a `Monoid`:
+--
+-- >>> var "prefix" <> strLit "foo"
+-- "${prefix}foo"
+--
 -- Additionally following properties hold:
 --
 -- @
--- 'lit' \"\" ≡ 'mempty'
--- 'var' \"\" ≢ 'mempty'
+-- `lit` \"\" ≡ `Data.Monoid.mempty`
+-- `var` \"\" ≡ `Data.Monoid.mempty`
 -- @

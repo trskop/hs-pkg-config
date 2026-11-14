@@ -15,12 +15,12 @@ compiler options when compiling libraries or applications. It is
 language-agnostic, but mainly used for building various C or C++ libraries and
 applications.
 
-One of the possible usage examples of this library is generating `.pc` files
-from [Shake build system][Shake Homepage].
-
 This library is compatible with [pkgconf][Pkgconf public repository] which is
 an alternative implementation of [pkg-config][Pkg-config Homepage] that
 provides additional functionality.
+
+This library can be also used to generate [`pc(5)`][pkg-confing file format]
+files from [Shake build system][Shake Homepage].
 
 
 Example
@@ -30,19 +30,18 @@ Following Haskell code is able to generate package configuration file named
 `foo.pc` for library `foo`:
 
 ```haskell
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-missing-import-lists #-}
 module Main (main)
   where
 
 import Data.String (IsString)
+import System.IO (IO)
 
-import Data.Default.Class (Default(def))
-   -- From data-default-class library:
-   -- http://hackage.haskell.org/package/data-default-class
-
-import Control.Lens
-   -- From lens library:
-   -- http://hackage.haskell.org/package/lens
+import System.FilePath (addExtension)
+   -- From filepath library:
+   -- http://hackage.haskell.org/package/filepath
 
 import Data.PkgConfig
 
@@ -51,27 +50,25 @@ libraryBaseName :: IsString a => a
 libraryBaseName = "foo"
 
 main :: IO ()
-main = writePkgConfig (libraryBaseName ++ ".pc") libPkgConfig
+main = writePkgConfig (libraryBaseName `addExtension` "pc") libPkgConfig
   where
-    libPkgConfig = def
-        & pkgVariables   .~
-            [ ("prefix",     "/usr/local"              )
-            , ("includedir", var "prefix" </> "include")
-            , ("libdir",     var "prefix" </> "lib"    )
-            , ("arch",       "i386"                    )
+    libPkgConfig = empty
+        { variables   =
+            [ "prefix"     .= "/usr/local"
+            , "includedir" .= (var "prefix" </> "include")
+            , "libdir"     .= (var "prefix" </> "lib")
+            , "arch"       .= "i386"
             ]
-        & pkgName        .~ libraryBaseName
-        & pkgDescription .~ "Example pkg-config."
-        & pkgVersion     .~ version [1, 2, 3]
-        & pkgCflags      .~ includes [var "includedir"]
-        & pkgRequires    .~ list
-            [ "bar" ~> [0], "bar" ~<= [3, 1]
-            , "baz" ~= [1, 2, 3]
-            ]
-        & pkgLibs        .~ options
+        , name        = libraryBaseName
+        , description = "Example pkg-config."
+        , version     = versionWord [1, 2, 3]
+        , cflags      = includes [var "includedir"]
+        , requires    = list ["tinfo" ~> [1, 0]]
+        , libs        = options
             [ libraryPath [var "libdir", var "libdir" </> var "arch"]
             , libraries [libraryBaseName]
             ]
+        }
 ```
 
 Content of `foo.pc`:
@@ -85,7 +82,7 @@ arch=i386
 Name: foo
 Description: Example pkg-config.
 Version: 1.2.3
-Requires: bar > 0, bar <= 3.1, baz = 1.2.3
+Requires: tinfo > 1.0
 Cflags: -I"${includedir}"
 Libs: -L"${libdir}" -L"${libdir}/${arch}" -lfoo
 ```
@@ -117,7 +114,7 @@ Building options
   "Hackage: hs-pkg-config"
 [Haskell.org]:
   http://www.haskell.org
-  "The Haskell Programming Language"
+  "The Haskell programming language homepage"
 [Pkg-config Homepage]:
   http://www.freedesktop.org/wiki/Software/pkg-config/
   "Pkg-config Homepage"
@@ -126,7 +123,10 @@ Building options
   "pkgconf public repository"
 [Shake Homepage]:
   http://shakebuild.com
-  "Shake Homepage"
+  "Shake build system homepage"
+[pkg-confing file format]:
+  https://man.archlinux.org/man/pc.5.en
+  "pc(5) manual page describing pkg-config file format"
 [tl;dr Legal: BSD3]:
   https://tldrlegal.com/license/bsd-3-clause-license-%28revised%29
   "BSD 3-Clause License (Revised)"

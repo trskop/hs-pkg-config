@@ -35,7 +35,9 @@ build-type:     Simple
 extra-source-files:
     ChangeLog.md
     README.md
-    example.hs
+    examples/example1.hs
+    examples/example2.hs
+    examples/example3.hs
 
 source-repository head
   type: git
