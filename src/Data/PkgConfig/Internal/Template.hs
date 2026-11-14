@@ -36,19 +36,23 @@ module Data.PkgConfig.Internal.Template
     , fragmentToStrictText
 
     -- * Query Template
+    , null
     , getVariables
     )
   where
 
-import Data.Bool (Bool, (||), otherwise)
+import Prelude (Integer)
+
+import Data.Bool (Bool(False, True), (||), otherwise)
 import Data.Char (Char)
 import Data.Data (Data)
 import Data.Eq (Eq((==)))
 import Data.Foldable (Foldable(foldMap))
 import Data.Function ((.), on)
+import Data.Functor ((<$>))
 import Data.Int (Int)
 import Data.List as List (map)
-import Data.Monoid (Monoid(mempty))
+import Data.Monoid (Monoid)
 import Data.Semigroup (Semigroup((<>)))
 import Data.String (IsString(fromString), String)
 import GHC.Generics (Generic)
@@ -59,6 +63,8 @@ import Data.Text qualified as Strict.Text
 import Data.Text.Lazy qualified as Lazy (Text)
 import Data.Text.Lazy.Builder qualified as Text (Builder)
 import Data.Text.Lazy.Builder qualified as Text.Builder
+import Test.QuickCheck qualified as QuickCheck
+import Test.QuickCheck.Instances.Text () -- Instances only
 
 
 -- {{{ Template Definition ----------------------------------------------------
@@ -70,10 +76,43 @@ data Fragment
     | Variable {-# UNPACK #-} !Strict.Text
   deriving stock (Data, Eq, Generic, Show)
 
+-- | @since 0.3.0.0
+instance QuickCheck.Arbitrary Fragment where
+    arbitrary :: QuickCheck.Gen Fragment
+    arbitrary = QuickCheck.oneof
+        [ Variable <$> QuickCheck.arbitrary
+        , Literal <$> QuickCheck.arbitrary
+        ]
+
+    shrink :: Fragment -> [Fragment]
+    shrink = \case
+        Literal t  -> [Literal t'  | t' <- QuickCheck.shrink t]
+        Variable t -> [Variable t' | t' <- QuickCheck.shrink t]
+
+-- | @since 0.3.0.0
+instance QuickCheck.CoArbitrary Fragment where
+    coarbitrary :: Fragment -> QuickCheck.Gen b -> QuickCheck.Gen b
+    coarbitrary = \case
+        Literal t  -> QuickCheck.variant @Integer 0 . QuickCheck.coarbitrary t
+        Variable t -> QuickCheck.variant @Integer 1 . QuickCheck.coarbitrary t
+
 -- | 'Template' is a possibly empty sequence of fragments represented by
 -- 'Fragment' data type.
-newtype Template = Template [Fragment]
+newtype Template = Template
+    { fragments :: [Fragment]
+    -- ^ Access underlying `Fragment`s.
+    --
+    -- @since 0.3.0.0
+    }
   deriving stock (Data, Generic)
+  deriving newtype
+    ( Monoid -- ^ @`Data.Monoid.mempty` ≡ `empty`@
+    , Semigroup -- ^ @since 0.3.0.0
+    )
+  deriving newtype
+    ( QuickCheck.Arbitrary -- ^ @since 0.3.0.0
+    , QuickCheck.CoArbitrary -- ^ @since 0.3.0.0
+    )
 
 -- | Template consists of variables and literal strings. All special characters
 -- (@\'$\'@, @\'#\'@, @\'\\\'@ and end-of-line sequences) contained in literals
@@ -159,7 +198,7 @@ fragmentToBuilder = Text.Builder.fromText . fragmentToStrictText
 
 -- | Serialize template in to 'Text.Builder'.
 toTextBuilder :: Template -> Text.Builder
-toTextBuilder (Template fragments) = foldMap fragmentToBuilder fragments
+toTextBuilder Template{fragments} = foldMap fragmentToBuilder fragments
 
 -- | Serialize template in to lazy 'Lazy.Text'.
 toLazyText :: Template -> Lazy.Text
@@ -167,7 +206,7 @@ toLazyText = Text.Builder.toLazyText . toTextBuilder
 
 -- | Serialize template in to strict 'Strict.Text'.
 toStrictText :: Template -> Strict.Text
-toStrictText (Template fragments) =
+toStrictText Template{fragments} =
     Strict.Text.concat (List.map fragmentToStrictText fragments)
 
 -- {{{ Instances for Template -------------------------------------------------
@@ -176,16 +215,6 @@ toStrictText (Template fragments) =
 instance Eq Template where
     (==) :: Template -> Template -> Bool
     (==) = (==) `on` toLazyText
-
-instance Semigroup Template where
-    (<>) :: Template -> Template -> Template
-    Template fs <> Template fs' = Template (fs <> fs')
-
--- | @`mempty` ≡ `empty`@
-instance Monoid Template where
-    mempty :: Template
-    mempty = Template []
-    {-# INLINE mempty #-}
 
 instance Show Template where
     showsPrec :: Int -> Template -> ShowS
@@ -205,8 +234,10 @@ instance IsString Template where
 -- === Properties:
 --
 -- @
--- `mempty` ≡ empty
+-- `Data.Monoid.mempty` ≡ empty
 -- @
+--
+-- @since 0.3.0.0
 empty :: PkgTemplate
 empty = Template []
 
@@ -227,6 +258,8 @@ var v
 
 -- | Construct 'PkgTemplate' variable from 'String' by packing it in to strict
 -- 'Strict.Text' first.
+--
+-- @since 0.3.0.0
 strVar :: String -> PkgTemplate
 strVar = var . Strict.Text.pack
 
@@ -234,7 +267,7 @@ strVar = var . Strict.Text.pack
 -- extension @OverloadedStrings@ is not enabled.
 --
 -- >>> var "prefix" <> lit "/bin"
--- "$prefix/bin"
+-- "${prefix}/bin"
 --
 -- >>> lit "${foo}"
 -- "$${foo}"
@@ -251,16 +284,37 @@ lit l
 
 -- | Create 'PkgTemplate' literal from 'String' by packing it in to strict
 -- 'Strict.Text' first.
+--
+-- === Properties:
+--
+-- @
+-- `strLit` \"\" ≡ `empty`
+-- @
 strLit :: String -> PkgTemplate
 strLit = lit . Strict.Text.pack
 
 -- | Crate one character long 'PkgTemplate' literal.
 singletonLit :: Char -> PkgTemplate
-singletonLit = lit . Strict.Text.singleton
+singletonLit c = Template [Literal (Strict.Text.singleton c)]
 
 -- }}} Smart Constructors -----------------------------------------------------
 
 -- {{{ Query Template ---------------------------------------------------------
+
+-- | Is template empty?
+--
+-- >>> null empty
+-- True
+-- >>> null (strLit "foo")
+-- False
+-- >>> null (strLit "")
+-- True
+--
+-- @since 0.3.0.0
+null :: PkgTemplate -> Bool
+null = \case
+    Template [] -> True
+    _           -> False
 
 -- | List all variables mentioned in 'PkgTemplate'.
 --
@@ -274,7 +328,7 @@ singletonLit = lit . Strict.Text.singleton
 --
 -- @since 0.3.0.0
 getVariables :: PkgTemplate -> [Strict.Text]
-getVariables (Template fragments) = go fragments
+getVariables Template{fragments} = go fragments
   where
     go = \case
         []     -> []

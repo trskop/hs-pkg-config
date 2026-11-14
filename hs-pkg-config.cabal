@@ -60,16 +60,22 @@ library
       DeriveDataTypeable
       DeriveGeneric
       DerivingStrategies
+      DerivingVia
       GeneralizedNewtypeDeriving
       ImportQualifiedPost
       InstanceSigs
       LambdaCase
+      NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
       RecordWildCards
+      StandaloneDeriving
+      TypeApplications
   ghc-options: -Wall -Wcompat -Wimplicit-prelude -Wprepositive-qualified-module -Wunused-packages -Wmissing-import-lists
   build-depends:
-      base >=4.17 && <5
+      QuickCheck >=2.14.1 && <3
+    , base >=4.17 && <5
+    , quickcheck-instances >=0.3.24 && <1
     , text >=0.11 && <3
   default-language: Haskell2010
   if flag(pedantic)
@@ -89,13 +95,17 @@ test-suite hs-pkg-config-test
       DeriveDataTypeable
       DeriveGeneric
       DerivingStrategies
+      DerivingVia
       GeneralizedNewtypeDeriving
       ImportQualifiedPost
       InstanceSigs
       LambdaCase
+      NamedFieldPuns
       NoImplicitPrelude
       OverloadedStrings
       RecordWildCards
+      StandaloneDeriving
+      TypeApplications
   ghc-options: -Wall -Wcompat -Wimplicit-prelude -Wprepositive-qualified-module -Wunused-packages -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.17 && <5

@@ -100,7 +100,8 @@ module Data.PkgConfig
     )
   where
 
-import Data.Function ((.), ($))
+import Data.Bool (otherwise)
+import Data.Function ((.))
 import Data.Int (Int, Int32, Int64, Int8)
 import Data.List qualified as List (map)
 import Data.Semigroup ((<>))
@@ -115,16 +116,18 @@ import Data.Text.IO qualified as Strict.Text (writeFile)
 
 import Data.PkgConfig.Internal.Template
     ( PkgTemplate
+    , Template(Template)
     , getVariables
     , lit
     , singletonLit
     , strLit
     , var
     )
-import Data.PkgConfig.Internal.Template qualified as Template (empty)
+import Data.PkgConfig.Internal.Template qualified as Template (empty, null)
 import Data.PkgConfig.Internal.PkgConfig
     ( PkgConfig
-        ( cflags
+        ( PkgConfig
+        , cflags
         , cflagsPrivate
         , conflicts
         , description
@@ -163,10 +166,15 @@ import Data.PkgConfig.Internal.PkgConfig
 --
 -- #top-level#
 --
--- Create /pkg-config/ configuration files from Haskell code using combinators
--- specialized for this purpose.
+-- Create [/pkg-config/](https://www.freedesktop.org/wiki/Software/pkg-config/)
+-- configuration files from Haskell code using combinators specialized for this
+-- purpose.
 --
--- To learn more about /pkg-config/ please read one or both following articles:
+-- For short overview of what /pkg-config/ is, please, see [pkg-config page on
+-- Wikipedia](https://en.wikipedia.org/wiki/Pkg-config).
+--
+-- To learn more details about /pkg-config/ and its configuration files,
+-- please, read one or both following articles:
 --
 -- * [Guide to pkg-config
 --   ](http://people.freedesktop.org/~dbn/pkg-config-guide.html) by Dan
@@ -185,6 +193,11 @@ import Data.PkgConfig.Internal.PkgConfig
 --
 -- * [@github.com\/pkgconf\/pkgconf@ public repository
 --   ](https://github.com/pkgconf/pkgconf)
+--
+-- Another useful source is [/u-config/ ("micro-config")
+-- ](https://github.com/skeeto/u-config), an alternative implementation of
+-- /pkg-config/. It has a first class support for Windows, which exposes
+-- various corner cases of /pkg-config/ design.
 
 -- {{{ PkgTemplate Combinators ------------------------------------------------
 
@@ -199,6 +212,8 @@ quote :: PkgTemplate -> PkgTemplate
 quote t = singletonLit '"' <> t <> singletonLit '"'
 
 -- | Use `Show` instance to construct a literal.
+--
+-- @since 0.3.0.0
 showLit :: Show a => a -> PkgTemplate
 showLit = strLit . show
 
@@ -208,6 +223,8 @@ showLit = strLit . show
 -- litWith `fromString` :: `String` -> `PkgTemplate`
 -- litWith (`fromString` `.` `show`) :: `Show` a => a -> `PkgTemplate`
 -- @
+--
+-- @since 0.3.0.0
 litWith :: (a -> Strict.Text) -> a -> PkgTemplate
 litWith f = lit . f
 
@@ -217,6 +234,8 @@ litWith f = lit . f
 -- varWith `fromString` :: `String` -> `PkgTemplate`
 -- varWith (`fromString` `.` `show`) :: `Show` a => a -> `PkgTemplate`
 -- @
+--
+-- @since 0.3.0.0
 varWith :: (a -> Strict.Text) -> a -> PkgTemplate
 varWith f = lit . f
 
@@ -226,6 +245,8 @@ varWith f = lit . f
 -- \"prefix\" `.=` \"\/usr\/local\"
 -- \"includedir\" `.=` `var` \"prefix\" `</>` \"include\"
 -- @
+--
+-- @since 0.3.0.0
 (.=) :: Strict.Text -> PkgTemplate -> PkgVariable
 (.=) = (,)
 infixr 8 .=
@@ -236,8 +257,19 @@ infixr 8 .=
 --
 -- >>> var "prefix" </> lit "foo" <.> lit "pc"
 -- "${prefix}/foo.pc"
+--
+-- When either of the arguments is empty are as follows:
+--
+-- >>> mempty </> lit "foo"
+-- "foo"
+-- >>> var "prefix" </> mempty
+-- "${prefix}"
 (</>) :: PkgTemplate -> PkgTemplate -> PkgTemplate
-t1 </> t2 = t1 <> singletonLit '/' <> t2
+t1 </> t2
+  | Template.null t1 = t2
+  | Template.null t2 = t1
+  | otherwise        = t1 <> singletonLit '/' <> t2
+infixr 5 </>
 
 -- | Put literal \".\" between two templates.
 --
@@ -245,8 +277,18 @@ t1 </> t2 = t1 <> singletonLit '/' <> t2
 -- "${prefix}/foo.pc"
 -- >>> var "major" <.> var "minor" <.> var "patch"
 -- "${major}.${minor}.${patch}"
+--
+-- When either of the arguments is empty are as follows:
+--
+-- >>> strLit "file" <.> mempty
+-- "file"
+-- >>> mempty <.> strLit "pc"
+-- ".pc"
 (<.>) :: PkgTemplate -> PkgTemplate -> PkgTemplate
-t1 <.> t2 = t1 <> singletonLit '.' <> t2
+t1 <.> t2
+  | Template.null t2 = t1
+  | otherwise        = t1 <> singletonLit '.' <> t2
+infixr 7 <.>
 
 -- }}} File Path Combinators --------------------------------------------------
 
@@ -294,37 +336,24 @@ class VersionField a where
             [] -> versionField v
             _  -> versionField v <.> versionFields vs
 
-instance VersionField Word where
-    versionField :: Word -> PkgTemplate
-    versionField = strLit . show
+-- | __INTERNAL__ It's purpose is to simplify derivation of instances.
+--
+-- @since 0.3.0.0
+newtype Shown a = Shown {unShown :: a}
 
-instance VersionField Word8 where
-    versionField :: Word8 -> PkgTemplate
-    versionField = strLit . show
+instance Show a => VersionField (Shown a) where
+    versionField :: Shown a -> PkgTemplate
+    versionField = strLit . show . unShown
 
-instance VersionField Word32 where
-    versionField :: Word32 -> PkgTemplate
-    versionField = strLit . show
+deriving via Shown Word   instance VersionField Word
+deriving via Shown Word8  instance VersionField Word8
+deriving via Shown Word32 instance VersionField Word32
+deriving via Shown Word64 instance VersionField Word64
 
-instance VersionField Word64 where
-    versionField :: Word64 -> PkgTemplate
-    versionField = strLit . show
-
-instance VersionField Int where
-    versionField :: Int -> PkgTemplate
-    versionField = strLit . show
-
-instance VersionField Int8 where
-    versionField :: Int8 -> PkgTemplate
-    versionField = strLit . show
-
-instance VersionField Int32 where
-    versionField :: Int32 -> PkgTemplate
-    versionField = strLit . show
-
-instance VersionField Int64 where
-    versionField :: Int64 -> PkgTemplate
-    versionField = strLit . show
+deriving via Shown Int   instance VersionField Int
+deriving via Shown Int8  instance VersionField Int8
+deriving via Shown Int32 instance VersionField Int32
+deriving via Shown Int64 instance VersionField Int64
 
 -- | Treat list of version fields as version number and construct template
 -- literal out of it.
@@ -342,6 +371,9 @@ ver = versionFields
 -- "1.2.3"
 --
 -- It's also possible to use `ver` directly instead:
+--
+-- >>> ver [1, 2, 3 :: Word]
+-- "1.2.3"
 --
 -- >>> :set -XTypeApplications
 -- >>> ver @Word [1, 2, 3]
@@ -362,6 +394,9 @@ versionWord = ver
 -- "1.2.3"
 --
 -- It's also possible to use `ver` directly instead:
+--
+-- >>> ver [1, 2, 3 :: Int]
+-- "1.2.3"
 --
 -- >>> :set -XTypeApplications
 -- >>> ver @Int [1, 2, 3]
@@ -426,50 +461,63 @@ pkg ~>= v = lit pkg <> strLit " >= " <> versionFields v
 
 -- | Put specified text between templates.
 --
+-- >>> separatedBy ", " ["foo", "bar", "baz"]
+-- "foo, bar, baz"
+--
+-- >>> separatedBy ", " ["foo", mempty, "bar", mempty, "baz", mempty]
+-- "foo, bar, baz"
+--
+-- === Properties:
+--
 -- Following properties hold:
 --
 -- @
--- forall s. 'separatedBy' s [] ≡ 'mempty'
--- forall s t. 'separatedBy' s [t] ≡ t
+-- ∀ s. `separatedBy` s [] ≡ `mempty`
+-- ∀ s t. `separatedBy` s [t] ≡ t
+-- ∀ s t₀…tᵢ…tₙ. tᵢ = `Data.Monoid.mempty` ⇒ `separatedBy` s [t₀,…,tᵢ,…,tₙ] = `separatedBy` s [t₀,…,tᵢ₋₁,tᵢ₊₁,…,tₙ]
 -- @
---
--- Example:
---
--- >>> separatedBy ", " ["foo", "bar", "baz"]
--- "foo, bar, baz"
 separatedBy :: Strict.Text -> [PkgTemplate] -> PkgTemplate
 separatedBy s = \case
-    []     -> Template.empty
-    [x]    -> x
-    x : xs -> x <> lit s <> separatedBy s xs
+    -- The complex pattern matching is so that we can avoid doing something
+    -- like `List.filter (not . Template.null)` before.
+    []                   -> Template.empty
+    [x]                  -> x
+    Template [] : xs     -> separatedBy s xs
+    x : Template [] : xs -> separatedBy s (x : xs)
+    x : xs               -> x <> lit s <> separatedBy s xs
 
 -- | Concatenate templates by inserting coma (\',\') in between.
 --
 -- >>> list ["foo" .= [1,2,3], "bar" .> [0], "bar" .< [3,1]]
 -- "foo = 1.2.3, bar > 0, bar < 3.1"
 --
+-- === Properties:
+--
 -- Following properties hold:
 --
 -- @
 -- 'list' [] ≡ 'mempty'
--- forall t. 'list' [t] ≡ t
+-- ∀ t. 'list' [t] ≡ t
+-- ∀ t₀…tᵢ…tₙ. tᵢ = `mempty` ⇒ `list` [t₀,…,tᵢ,…,tₙ] = `list` [t₀,…,tᵢ₋₁,tᵢ₊₁,…,tₙ]
 -- @
 list :: [PkgTemplate] -> PkgTemplate
-list = separatedBy $ Strict.Text.pack ", "
+list = separatedBy ", "
 
 -- | Concatenate templates by inserting space (\' \') in between.
 --
 -- >>> options ["-I" <> var "prefix" </> "lib", "-I" <> var "extra"]
 -- "-I${prefix}/lib -I${extra}"
 --
+-- === Properties:
+--
 -- Following properties hold:
 --
 -- @
 -- 'options' [] ≡ 'mempty'
--- forall t. 'options' [t] ≡ t
+-- ∀ t. 'options' [t] ≡ t
 -- @
 options :: [PkgTemplate] -> PkgTemplate
-options = separatedBy $ Strict.Text.singleton ' '
+options = separatedBy (Strict.Text.singleton ' ')
 
 -- }}} Specialized Folds for Template -----------------------------------------
 
@@ -482,10 +530,12 @@ options = separatedBy $ Strict.Text.singleton ' '
 -- >>> option "--foo=" $ var "prefix" </> "some dir"
 -- "--foo=\"${prefix}/some dir\""
 --
+-- === Properties:
+--
 -- Following property holds:
 --
 -- @
--- forall t. 'option' \"\" t ≡ 'quote' t
+-- ∀ t. 'option' \"\" t ≡ 'quote' t
 -- @
 option :: Strict.Text -> PkgTemplate -> PkgTemplate
 option opt = (lit opt <>) . quote
@@ -511,8 +561,9 @@ includes = options . List.map (strOption "-I")
 libraries :: [PkgTemplate] -> PkgTemplate
 libraries = options . List.map (strLit "-l" <>)
 
--- | Take list of templates and make compiler library path options. Template for
--- include directory is wrapped in quotes (see 'quote' and 'option' functions).
+-- | Take list of templates and make compiler library path options. Template
+-- for include directory is wrapped in quotes (see 'quote' and 'option'
+-- functions).
 --
 -- >>> let l = var "prefix" </> lit "lib" in libraryPath [l, l </> var "arch"]
 -- "-L\"${prefix}/lib\" -L\"${prefix}/lib/${arch}\""
@@ -563,14 +614,14 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- libraryBaseName = \"foo\"
 --
 -- main :: IO ()
--- main = 'writePkgConfig' (libraryBaseName '++' \".pc\") libPkgConfig
+-- main = 'writePkgConfig' (libraryBaseName '<>' \".pc\") libPkgConfig
 --   where
 --     libPkgConfig = 'empty'
 --         & 'pkgVariables'   .~
---             [ (\"prefix\",     \"\/usr\/local\"              )
---             , (\"includedir\", 'var' \"prefix\" '</>' \"include\")
---             , (\"libdir\",     'var' \"prefix\" '</>' \"lib\"    )
---             , (\"arch\",       \"i386\"                    )
+--             [ \"prefix\"     `.=` \"\/usr\/local\"
+--             , \"includedir\" `.=` (`var` \"prefix\" `</>` \"include\")
+--             , \"libdir\"     `.=` (`var` \"prefix\" `</>` \"lib\")
+--             , \"arch\"       `.=` \"i386\"
 --             ]
 --         & 'pkgName'        .~ libraryBaseName
 --         & 'pkgDescription' .~ \"Example pkg-config.\"
@@ -581,7 +632,10 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 --             , \"baz\" '~=' [1, 2, 3]
 --             ]
 --         & 'pkgLibs'        .~ 'options'
---             [ 'libraryPath' ['var' \"libdir\", 'var' \"libdir\" '</>' 'var' \"arch\"]
+--             [ 'libraryPath'
+--                 [ 'var' \"libdir\"
+--                 , 'var' \"libdir\" '</>' 'var' \"arch\"
+--                 ]
 --             , 'libraries' [libraryBaseName]
 --             ]
 -- @
@@ -610,12 +664,12 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- specific library. It also tries to preserve as much of /pkg-config/
 -- philosophy as possible.
 --
--- Lenses are used for accessing individual fields of 'PkgConfig' data type.
+-- Lenses can be used for accessing individual fields of 'PkgConfig' data type.
 -- Example:
 --
 -- @
 -- 'empty'
---     & 'pkgVariables' .~ [(\"prefix\", \"\/usr\/local\")]
+--     & 'pkgVariables' .~ [\"prefix\" `.=` \"\/usr\/local\"]
 --     & 'pkgName'      .~ \"some library\"
 --     -- ...
 --     & 'pkgLibs'      .~ 'includes'
@@ -639,9 +693,9 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- above example can be translated in to:
 --
 -- @
--- 'empty' & 'pkgVariables' .~
---     [ (\"prefix\", \"\/usr\/local\")
---     , (\"includedir\", 'var' \"prefix\" '</>' \"include\")
+-- `empty` `Data.Function.&` `pkgVariables` .~
+--     [ \"prefix\" `.=` \"\/usr\/local\"
+--     , \"includedir\" `.=` `var` \"prefix\" `</>` \"include\"
 --     ]
 -- @
 --

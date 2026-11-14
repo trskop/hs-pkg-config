@@ -22,9 +22,9 @@ import Data.Semigroup ((<>), )
 import Data.String (fromString, )
 
 import Data.Text qualified as Strict.Text
-import Test.Tasty (TestTree, testGroup, )
+import Test.Tasty (TestTree, )
 import Test.Tasty.HUnit ((@?=), testCase, )
-import Test.Tasty.QuickCheck ((===), (==>), testProperty, )
+import Test.Tasty.QuickCheck ((.&&.), (===), (==>), testProperty, )
 
 import Data.PkgConfig.Internal.Template
 
@@ -68,19 +68,17 @@ tests =
 
         in  not (Strict.Text.null t) ==> actual === [Variable t]
 
-    , testGroup "Semigroup"
-        [ testProperty "associativity (1)" \x y z ->
-            let Template lhs = strLit x <> (strLit y <> strLit z)
-                Template rhs = (strLit x <> strLit y) <> strLit z
+    , testProperty "Semigroup associativity law" \x y z ->
+        let Template lhs = x <> (y <> z)
+            Template rhs = (x <> y) <> z
 
-            in  lhs === rhs
+        in  lhs === rhs
 
-        , testProperty "associativity (2)" \x y z ->
-            let Template lhs = strVar x <> (strVar y <> strVar z)
-                Template rhs = (strVar x <> strVar y) <> strVar z
+    , testProperty "Monoid identity laws" \x ->
+        let Template lhs1 = x <> mempty
+            Template lhs2 = mempty <> x
+            Template rhs = x
 
-            in  lhs === rhs
-
-        ]
+        in  lhs1 === rhs .&&. lhs2 === rhs
 
     ]

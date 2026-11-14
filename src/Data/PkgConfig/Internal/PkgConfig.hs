@@ -46,7 +46,7 @@ import Data.Bool (not, otherwise)
 import Data.Data (Data)
 import Data.Function ((.), ($))
 import Data.Functor (Functor, (<&>))
-import Data.List as List (filter, map)
+import Data.List as List (filter, map, null)
 import Data.Monoid ((<>))
 import GHC.Generics (Generic)
 import Text.Show (Show)
@@ -125,14 +125,15 @@ data PkgConfig = PkgConfig
     , cflags :: PkgTemplate
     -- ^ Compiler flags specific to this package and any required libraries
     -- that don't support /pkg-config/. If the required libraries support
-    -- /pkg-config/, they should be added to @Requires@ ('_pkgRequires') or
-    -- @Requires.private@ ('_pkgRequiresPrivate').
+    -- /pkg-config/, they should be added to @Requires@ (@requires@ field) or
+    -- @Requires.private@ (@requiresPrivate@ field).
 
     , cflagsPrivate :: PkgTemplate
     -- ^ Compiler flags specific to this package and any required libraries
     -- that don't support /pkg-config/ for when linking statically. If the
     -- required libraries support /pkg-config/, they should be added to
-    -- @Requires@ ('pkgRequires') or @Requires.private@ ('pkgRequiresPrivate').
+    -- @Requires@ (@requires@ field) or @Requires.private@ (@requiresPrivate@
+    -- field).
     --
     -- This field is a /pkgconf/ extension.
     --
@@ -140,13 +141,13 @@ data PkgConfig = PkgConfig
 
     , libs :: PkgTemplate
     -- ^ Linking flags specific to this package and any required libraries that
-    -- don't support /pkg-config/. The same rules as for @Cflags@
-    -- ('_pkgCflags') field apply here.
+    -- don't support /pkg-config/. The same rules as for @Cflags@ (@cflags@
+    -- field) apply here.
 
     , libsPrivate :: PkgTemplate
     -- ^ Linking flags for private libraries required by this package but not
-    -- exposed to applications. The same rules as for @Cflags@ ('_pkgCflags')
-    -- field apply here.
+    -- exposed to applications. The same rules as for @Cflags@ (@cflags@ field)
+    -- apply here.
     }
   deriving stock (Data, Generic, Show)
 
@@ -172,7 +173,7 @@ empty = PkgConfig
 toStrictText :: PkgConfig -> Strict.Text
 toStrictText PkgConfig{..} = Strict.Text.concat
     [ variablesToStrictText variables
-    , Strict.Text.unlines [""]
+    , Strict.Text.unlines ["" | not (List.null variables)]
     , Strict.Text.unlines $ List.filter (not . Strict.Text.null)
         [ "Name"             <:>  name
         , "Description"      <:>  description
@@ -189,12 +190,15 @@ toStrictText PkgConfig{..} = Strict.Text.concat
         ]
     ]
   where
+    (<:>) :: Strict.Text -> Strict.Text -> Strict.Text
     key <:> value
       | Strict.Text.null value = Strict.Text.empty
       | otherwise              = key <> ": " <> value
 
+    (<:>.) :: Strict.Text -> PkgTemplate -> Strict.Text
     key <:>. value = key <:> Template.toStrictText value
 
+    variablesToStrictText :: [PkgVariable] -> Strict.Text
     variablesToStrictText = Strict.Text.unlines . map varToText
       where
         varToText (var, tmpl) = var <> "=" <> Template.toStrictText tmpl

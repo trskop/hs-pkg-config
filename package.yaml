@@ -44,13 +44,17 @@ default-extensions:
   - DeriveDataTypeable # GHC ≥6.8
   - DeriveGeneric # GHC ≥7.2
   - DerivingStrategies # GHC ≥8.2
+  - DerivingVia # GHC ≥8.6
   - GeneralizedNewtypeDeriving # GHC ≥6.8
   - ImportQualifiedPost # GHC ≥8.10
   - InstanceSigs # GHC ≥7.6
   - LambdaCase # GHC ≥7.6
+  - NamedFieldPuns # GHC ≥6.10
   - NoImplicitPrelude # GHC ≥6.8
   - OverloadedStrings # GHC ≥6.8
   - RecordWildCards # GHC ≥6.8
+  - StandaloneDeriving # GHC ≥6.8
+  - TypeApplications # GHC ≥8.0
 
 dependencies:
   - base >=4.17 && <5
@@ -67,6 +71,8 @@ _dependencies:
   # version 1.2.0.3.
 
   # Testing frameworks and testing specific packages:
+  - &QuickCheck                   "QuickCheck >=2.14.1 && <3"
+  - &quickcheck-instances         "quickcheck-instances >= 0.3.24 && <1"
   - &tasty                        "tasty >=1.4 && <2"
   - &tasty-hunit                  "tasty-hunit >=0.10 && <1"
   - &tasty-quickcheck             "tasty-quickcheck >=0.10 && <1"
@@ -87,6 +93,8 @@ library:
   source-dirs: src
 
   dependencies:
+    - *QuickCheck
+    - *quickcheck-instances
     - *text
 
   ghc-options:
