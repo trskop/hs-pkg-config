@@ -42,6 +42,7 @@ module Data.PkgConfig.Internal.PkgConfig
     )
   where
 
+import Control.Applicative (pure)
 import Data.Bool (not, otherwise)
 import Data.Data (Data)
 import Data.Function ((.), ($))
@@ -53,6 +54,8 @@ import Text.Show (Show)
 
 import Data.Text qualified as Strict (Text)
 import Data.Text qualified as Strict.Text
+import Test.QuickCheck qualified as QuickCheck
+import Test.QuickCheck.Instances.Text () -- Instances only
 
 import Data.PkgConfig.Internal.Template (PkgTemplate)
 import Data.PkgConfig.Internal.Template qualified as Template
@@ -193,10 +196,50 @@ data PkgConfig = PkgConfig
     }
   deriving stock (Data, Generic, Show)
 
+instance QuickCheck.Arbitrary PkgConfig where
+    arbitrary :: QuickCheck.Gen PkgConfig
+    arbitrary = do
+        variables       <- QuickCheck.arbitrary
+        name            <- QuickCheck.arbitrary
+        description     <- QuickCheck.arbitrary
+        url             <- QuickCheck.arbitrary
+        version         <- QuickCheck.arbitrary
+        requires        <- QuickCheck.arbitrary
+        requiresPrivate <- QuickCheck.arbitrary
+        conflicts       <- QuickCheck.arbitrary
+        provides        <- QuickCheck.arbitrary
+        cflags          <- QuickCheck.arbitrary
+        cflagsPrivate   <- QuickCheck.arbitrary
+        libs            <- QuickCheck.arbitrary
+        libsPrivate     <- QuickCheck.arbitrary
+        pure PkgConfig{..}
+
+instance QuickCheck.CoArbitrary PkgConfig where
+    coarbitrary :: PkgConfig -> QuickCheck.Gen b -> QuickCheck.Gen b
+    coarbitrary PkgConfig{..} = QuickCheck.coarbitrary
+        (  variables
+        >< name
+        >< description
+        >< url
+        >< version
+        >< requires
+        >< requiresPrivate
+        >< conflicts
+        >< provides
+        >< cflags
+        >< cflagsPrivate
+        >< libs
+        >< libsPrivate
+        )
+      where
+        (><) = (,)
+
 -- | Empty `PkgConfig` with all fields unset or set to an empty value.
 --
 -- >>> toStrictText empty
 -- ""
+-- >>> toStrictText empty{name = "foo"}
+-- "Name: foo\n"
 empty :: PkgConfig
 empty = PkgConfig
     { variables = []

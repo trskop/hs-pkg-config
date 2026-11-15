@@ -18,6 +18,7 @@ import Data.Bool (not, )
 import Data.Function ((.), )
 import Data.Functor ((<$>), )
 import Data.List qualified as List (filter, )
+import Data.Monoid (mempty, )
 import Data.Semigroup ((<>), )
 import Data.String (fromString, unlines, )
 import Data.Version (makeVersion, showVersion, )
@@ -27,7 +28,7 @@ import Test.Tasty.HUnit ((@?=), testCase, )
 import Test.Tasty.QuickCheck ((===), (==>), testProperty, )
 
 import Data.PkgConfig
-import Data.PkgConfig.Internal.Template (Template(Template), )
+import Data.PkgConfig.Internal.Template (Template(Template, fragments), )
 import Data.PkgConfig.Internal.Template qualified as Template
 
 
@@ -48,6 +49,9 @@ tests =
 
     , testCase "toStrictText empty" do
         toStrictText empty @?= ""
+
+    , testProperty "fromString . toString = toStrictText" \x ->
+        fromString (toString x) === toStrictText x
 
     , testProperty "versionFields" \v ->
         Template.toStrictText (versionFields v)
@@ -78,9 +82,47 @@ tests =
         in  actual === expected
 
     , testProperty "separatedBy" \sep xs ->
-        let xs' = Template <$> xs
-        in  separatedBy sep xs'
-                === separatedBy sep (List.filter (not . Template.null) xs')
+        let ts = Template <$> xs
+        in  separatedBy sep ts
+                === separatedBy sep (List.filter (not . Template.null) ts)
+
+    , testProperty "list" \xs ->
+        let ts = Template <$> xs
+        in  list ts === separatedBy ", " (List.filter (not . Template.null) ts)
+
+    , testProperty "options" \xs ->
+        let ts = Template <$> xs
+        in  options ts
+                === separatedBy " " (List.filter (not . Template.null) ts)
+
+    , testCase "includes" do
+        fragments (includes []) @?= []
+        fragments (includes [""]) @?= []
+        fragments (includes ["", mempty]) @?= []
+
+        let incdir1 = var "prefix" </> "include"
+            incdir2 = incdir1 </> "x86_64"
+        fragments (includes [incdir1, "", incdir2, mempty])
+            @?= fragments (includes [incdir1, incdir2])
+
+    , testCase "libraries" do
+        fragments (libraries []) @?= []
+        fragments (libraries [""]) @?= []
+        fragments (libraries ["", mempty]) @?= []
+
+        fragments (libraries ["m", "", "tinfo", mempty])
+            @?= fragments (libraries ["m", "tinfo"])
+
+    , testCase "libraryPath" do
+        fragments (libraryPath []) @?= []
+        fragments (libraryPath [""]) @?= []
+        fragments (libraryPath ["", mempty]) @?= []
+
+        let libdir1 = var "prefix" </> "lib"
+            libdir2 = libdir1 </> "x86_64"
+
+        fragments (libraryPath [libdir1, "", libdir2, mempty])
+            @?= fragments (libraryPath [libdir1, libdir2])
 
     , testCase "Example (1)" do
         let actual = empty

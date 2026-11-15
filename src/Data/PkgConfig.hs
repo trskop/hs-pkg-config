@@ -22,6 +22,11 @@ module Data.PkgConfig
     -- * PkgConfig
     -- $pkg-config
       PkgConfig(..)
+    , PkgDescription
+    , PkgName
+    , PkgUrl
+    , PkgVariable
+    , PkgVersion
     , empty
 
     -- ** Lenses
@@ -36,15 +41,6 @@ module Data.PkgConfig
     , pkgCflags
     , pkgLibs
     , pkgLibsPrivate
-
-    -- ** Type Aliases
-    --
-    -- | These are used to make type signatures easier to read.
-    , PkgDescription
-    , PkgName
-    , PkgUrl
-    , PkgVariable
-    , PkgVersion
 
     -- ** Serialization
     , toStrictText
@@ -106,7 +102,7 @@ module Data.PkgConfig
 import Data.Bool (otherwise)
 import Data.Function ((.))
 import Data.Int (Int, Int32, Int64, Int8)
-import Data.List qualified as List (map)
+import Data.List qualified as List (concatMap)
 import Data.Semigroup ((<>))
 import Data.String (String)
 import Data.Word (Word, Word32, Word64, Word8)
@@ -473,6 +469,12 @@ pkg ~>= v = lit pkg <> strLit " >= " <> versionFields v
 -- >>> separatedBy ", " ["foo", "bar", "baz"]
 -- "foo, bar, baz"
 --
+-- Be aware that empty values are skipped:
+--
+-- >>> separatedBy ", " []
+-- ""
+-- >>> separatedBy ", " ["", ""]
+-- ""
 -- >>> separatedBy ", " ["foo", mempty, "bar", mempty, "baz", mempty]
 -- "foo, bar, baz"
 --
@@ -500,6 +502,17 @@ separatedBy s = \case
 -- >>> list ["foo" ~= [1,2,3], "bar" ~> [0], "bar" ~< [3,1]]
 -- "foo = 1.2.3, bar > 0, bar < 3.1"
 --
+-- Be aware that empty values are skipped:
+--
+-- >>> list []
+-- ""
+-- >>> list [""]
+-- ""
+-- >>> list ["", ""]
+-- ""
+-- >>> list ["", "tinfo" ~> [5,0], "", "libssh" ~> [0, 11]]
+-- "tinfo > 5.0, libssh > 0.11"
+--
 -- === Properties:
 --
 -- Following properties hold:
@@ -516,6 +529,17 @@ list = separatedBy ", "
 --
 -- >>> options ["-I" <> var "prefix" </> "lib", "-I" <> var "extra"]
 -- "-I${prefix}/lib -I${extra}"
+--
+-- Be aware that empty values are skipped:
+--
+-- >>> options []
+-- ""
+-- >>> options [""]
+-- ""
+-- >>> options ["", ""]
+-- ""
+-- >>> options ["-I" <> var "prefix" </> "include", ""]
+-- "-I${prefix}/include"
 --
 -- === Properties:
 --
@@ -561,15 +585,39 @@ strOption = option . Strict.Text.pack
 -- "-I\"${prefix}/include\" -I\"${prefix}/include/${arch}\""
 -- >>> includes [var "prefix" </> "some dir"]
 -- "-I\"${prefix}/some dir\""
+--
+-- Be aware that empty values are skipped:
+--
+-- >>> includes []
+-- ""
+-- >>> includes [""]
+-- ""
+-- >>> includes ["", ""]
+-- ""
+-- >>> includes [var "prefix", "", var "prefix" </> "x86_64", ""]
+-- "-I\"${prefix}\" -I\"${prefix}/x86_64\""
 includes :: [PkgTemplate] -> PkgTemplate
-includes = options . List.map (strOption "-I")
+includes = options . List.concatMap \arg ->
+    [if Template.null arg then Template.empty else option "-I" arg]
 
 -- | Take list of templates and make compiler library options.
 --
 -- >>> libraries ["m", "rt", "tinfo"]
 -- "-lm -lrt -tinfo"
+--
+-- Be aware that empty values are skipped:
+--
+-- >>> libraries []
+-- ""
+-- >>> libraries [""]
+-- ""
+-- >>> libraries ["", ""]
+-- ""
+-- >>> libraries ["m", "", "tinfo", ""]
+-- "-lm -ltinfo"
 libraries :: [PkgTemplate] -> PkgTemplate
-libraries = options . List.map (strLit "-l" <>)
+libraries = options . List.concatMap \arg ->
+    [if Template.null arg then Template.empty else strLit "-l" <> arg]
 
 -- | Take list of templates and make compiler library path options. Template
 -- for include directory is wrapped in quotes (see `quote` and `option`
@@ -577,16 +625,27 @@ libraries = options . List.map (strLit "-l" <>)
 --
 -- >>> let l = var "prefix" </> lit "lib" in libraryPath [l, l </> var "arch"]
 -- "-L\"${prefix}/lib\" -L\"${prefix}/lib/${arch}\""
+--
+-- Be aware that empty values are skipped:
+--
+-- >>> libraryPath []
+-- ""
+-- >>> libraryPath [""]
+-- ""
+-- >>> libraryPath ["", ""]
+-- ""
+-- >>> libraryPath [var "prefix" </> "lib", "", var "prefix" </> "lib" </> "x86_64"]
+-- "-L\"${prefix}/lib\" -L\"${prefix}/lib/x86_64\""
 libraryPath :: [PkgTemplate] -> PkgTemplate
-libraryPath = options . List.map (strOption "-L")
+libraryPath = options . List.concatMap \arg ->
+    [if Template.null arg then Template.empty else option "-L" arg]
 
 -- }}} Options Combinators ----------------------------------------------------
 -- }}} PkgTemplate Combinators ------------------------------------------------
 
 -- {{{ Serialization ----------------------------------------------------------
 
--- | Serialize `PkgConfig` in to strict `Strict.Text` and then convert it to a
--- `String`.
+-- | Serialize `PkgConfig` into a `String`.
 toString :: PkgConfig -> String
 toString = Strict.Text.unpack . toStrictText
 
@@ -723,7 +782,7 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 -- > includedir=${prefix}/include
 --
 -- `PkgConfig` has a field `variables` that is used to define variables and
--- above example can be translated in to:
+-- above example can be translated into:
 --
 -- @
 -- `empty`
@@ -743,13 +802,13 @@ writePkgConfig file = Strict.Text.writeFile file . toStrictText
 --
 -- Since `PkgTemplate` has `Data.String.IsString` instance, then, if
 -- @OverloadedStrings@ language extension is enabled, it is possible to
--- simplify above example in to:
+-- simplify above example into:
 --
 -- >>> "foo" <> "bar" :: PkgTemplate
 -- "foobar"
 --
 -- On the other hand variables behave slightly differently, yet the
--- `PkgTemplate` still forms a `Monoid`:
+-- `PkgTemplate` still forms a `Data.Monoid.Monoid`:
 --
 -- >>> var "prefix" <> strLit "foo"
 -- "${prefix}foo"

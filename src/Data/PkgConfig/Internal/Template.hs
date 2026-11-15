@@ -324,7 +324,7 @@ null = \case
 -- === Notes:
 --
 -- Prior to version 0.3.0.0 this function was named @variables@, however, that
--- now conflicts with the `PkgConfig` field of the same name.
+-- now conflicts with the `Data.PkgConfig.PkgConfig` field of the same name.
 --
 -- @since 0.3.0.0
 getVariables :: PkgTemplate -> [Strict.Text]
