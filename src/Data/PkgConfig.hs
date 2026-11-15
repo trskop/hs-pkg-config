@@ -48,6 +48,7 @@ module Data.PkgConfig
 
     -- ** I/O
     , writePkgConfig
+    , hPutPkgConfig
 
     -- * PkgTemplate
     -- $pkg-template
@@ -99,6 +100,7 @@ module Data.PkgConfig
     )
   where
 
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Bool (otherwise)
 import Data.Function ((.))
 import Data.Int (Int, Int32, Int64, Int8)
@@ -106,12 +108,12 @@ import Data.List qualified as List (concatMap)
 import Data.Semigroup ((<>))
 import Data.String (String)
 import Data.Word (Word, Word32, Word64, Word8)
-import System.IO (FilePath, IO)
+import System.IO (FilePath, Handle)
 import Text.Show (Show(show))
 
 import Data.Text qualified as Strict (Text)
 import Data.Text qualified as Strict.Text (pack, singleton, unpack)
-import Data.Text.IO qualified as Strict.Text (writeFile)
+import Data.Text.IO qualified as Strict.Text (hPutStr, writeFile)
 
 import Data.PkgConfig.Internal.Template
     ( PkgTemplate
@@ -653,10 +655,15 @@ toString = Strict.Text.unpack . toStrictText
 
 -- {{{ I/O --------------------------------------------------------------------
 
--- | Serialize `PkgConfig` in to strict `Strict.Text` and write it in to a
+-- | Serialize `PkgConfig` into strict `Strict.Text` and write it into a
 -- specified file.
-writePkgConfig :: FilePath -> PkgConfig -> IO ()
-writePkgConfig file = Strict.Text.writeFile file . toStrictText
+writePkgConfig :: MonadIO io => FilePath -> PkgConfig -> io ()
+writePkgConfig file = liftIO . Strict.Text.writeFile file . toStrictText
+
+-- | Serialize `PkgConfig` into strict `Strict.Text` and write it to a
+-- specified `Handle`.
+hPutPkgConfig :: MonadIO io => Handle -> PkgConfig -> io ()
+hPutPkgConfig h = liftIO . Strict.Text.hPutStr h . toStrictText
 
 -- }}} I/O --------------------------------------------------------------------
 
