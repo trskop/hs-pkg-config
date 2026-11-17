@@ -68,6 +68,7 @@ module Data.PkgConfig
     , (.=)
 
     -- ** FilePath-like Combinators
+    -- $file-path-combinators
     , (</>)
     , (<.>)
 
@@ -104,7 +105,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Bool (otherwise)
 import Data.Function ((.))
 import Data.Int (Int, Int32, Int64, Int8)
-import Data.List qualified as List (concatMap)
+import Data.List qualified as List (concatMap, null)
 import Data.Semigroup ((<>))
 import Data.String (String)
 import Data.Word (Word, Word32, Word64, Word8)
@@ -112,7 +113,7 @@ import System.IO (FilePath, Handle)
 import Text.Show (Show(show))
 
 import Data.Text qualified as Strict (Text)
-import Data.Text qualified as Strict.Text (pack, singleton, unpack)
+import Data.Text qualified as Strict.Text (null, pack, singleton, unpack)
 import Data.Text.IO qualified as Strict.Text (hPutStr, writeFile)
 
 import Data.PkgConfig.Internal.Template
@@ -259,6 +260,13 @@ varWith f = lit . f
 infixr 8 .=
 
 -- {{{ File Path Combinators --------------------------------------------------
+
+-- $file-path-combinators
+--
+-- #file-path-combinators#
+--
+-- Cobinators inspired by the [@filepath@ library
+-- ](https://hackage.haskell.org/package/filepath).
 
 -- | Put literal \"/\" between two templates.
 --
@@ -418,8 +426,18 @@ versionInt = ver
 --
 -- >>> list ["sqlite" ~= [3, 8, 7, 1], "alpha" ~= [7, 2]]
 -- "sqlite = 3.8.7.1, alpha = 7.2"
+--
+-- === Properties:
+--
+-- @
+-- ∀vs. \"\" `~=` vs = `Data.Monoid.mempty`
+-- ∀pkg. pkg ≠ \"\" ⇒ pkg `~=` [] = pkg
+-- @
 (~=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~= v = lit pkg <> strLit " = " <> versionFields v
+pkg ~= v
+  | Strict.Text.null pkg = Template.empty
+  | List.null v          = lit pkg
+  | otherwise            = lit pkg <> strLit " = " <> versionFields v
 
 -- | Dependency on a package not of a specific version.
 --
@@ -428,8 +446,18 @@ pkg ~= v = lit pkg <> strLit " = " <> versionFields v
 --
 -- >>> list ["sqlite" ~/= [3, 8, 7, 1], "alpha" ~/= [7, 2]]
 -- "sqlite != 3.8.7.1, alpha != 7.2"
+--
+-- === Properties:
+--
+-- @
+-- ∀vs. \"\" `~/=` vs = `Data.Monoid.mempty`
+-- ∀pkg. pkg ≠ \"\" ⇒ pkg `~/=` [] = pkg
+-- @
 (~/=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~/= v = lit pkg <> strLit " != " <> versionFields v
+pkg ~/= v
+  | Strict.Text.null pkg = Template.empty
+  | List.null v          = lit pkg
+  | otherwise            = lit pkg <> strLit " != " <> versionFields v
 
 -- | Dependency on a package with version greater or less then specified
 -- value.
@@ -439,8 +467,18 @@ pkg ~/= v = lit pkg <> strLit " != " <> versionFields v
 --
 -- >>> list ["sqlite" ~< [3, 9], "alpha" ~< [7, 3]]
 -- "sqlite < 3.9, alpha < 7.3"
+--
+-- === Properties:
+--
+-- @
+-- ∀vs. \"\" `~<` vs = `Data.Monoid.mempty`
+-- ∀pkg. pkg ≠ \"\" ⇒ pkg `~<` [] = pkg
+-- @
 (~<) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~< v = lit pkg <> strLit " < " <> versionFields v
+pkg ~< v
+  | Strict.Text.null pkg = Template.empty
+  | List.null v          = lit pkg
+  | otherwise            = lit pkg <> strLit " < " <> versionFields v
 
 -- | Dependency on a package with version greater then specified value.
 --
@@ -449,18 +487,54 @@ pkg ~< v = lit pkg <> strLit " < " <> versionFields v
 --
 -- >>> list ["sqlite" ~> [3, 8], "alpha" ~> [7, 1]]
 -- "sqlite > 3.8, alpha > 7.1"
+--
+-- === Properties:
+--
+-- @
+-- ∀vs. \"\" `~>` vs = `Data.Monoid.mempty`
+-- ∀pkg. pkg ≠ \"\" ⇒ pkg `~>` [] = pkg
+-- @
 (~>) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~> v = lit pkg <> strLit " > " <> versionFields v
+pkg ~> v
+  | Strict.Text.null pkg = Template.empty
+  | List.null v          = lit pkg
+  | otherwise            = lit pkg <> strLit " > " <> versionFields v
 
 -- | Dependency on a package with version greater or less or equal then
 -- specified value.
+--
+-- >>> "sqlite" ~<= [4]
+-- "sqlite3 <= 4"
+--
+-- === Properties:
+--
+-- @
+-- ∀vs. \"\" `~<=` vs = `Data.Monoid.mempty`
+-- ∀pkg. pkg ≠ \"\" ⇒ pkg `~<=` [] = pkg
+-- @
 (~<=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~<= v = lit pkg <> strLit " <= " <> versionFields v
+pkg ~<= v
+  | Strict.Text.null pkg = Template.empty
+  | List.null v          = lit pkg
+  | otherwise            = lit pkg <> strLit " <= " <> versionFields v
 
 -- | Dependency on a package with version greater or equal then specified
 -- value.
+--
+-- >>> "sqlite" ~>= [3, 8]
+-- "sqlite3 >= 3.8"
+--
+-- === Properties:
+--
+-- @
+-- ∀vs. \"\" `~>=` vs = `Data.Monoid.mempty`
+-- ∀pkg. pkg ≠ \"\" ⇒ pkg `~>=` [] = pkg
+-- @
 (~>=) :: Strict.Text -> [Word] -> PkgTemplate
-pkg ~>= v = lit pkg <> strLit " >= " <> versionFields v
+pkg ~>= v
+  | Strict.Text.null pkg = Template.empty
+  | List.null v          = lit pkg
+  | otherwise            = lit pkg <> strLit " >= " <> versionFields v
 
 -- }}} Version Combinators ----------------------------------------------------
 

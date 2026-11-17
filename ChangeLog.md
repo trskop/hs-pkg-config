@@ -63,7 +63,17 @@
     x <.> mempty = x
     ```
 
--   Introduces the following functions:
+*   Functions `~=`, `~/=`, `~<`, `~>`, `~<=`, and `~>=` now handle empty values
+    in a sensible way. For example:
+
+    ```haskell
+    "" ~= [1, 2, 3] = mempty
+    "foo" ~= []     = pkg
+    ```
+
+    Unit tests for these properties included.
+
+*   Introduces the following functions:
 
     ```haskell
     (Data.PkgCofig..=) :: Strict.Text -> PkgTemplate -> PkgVariable

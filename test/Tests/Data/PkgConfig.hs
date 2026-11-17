@@ -25,7 +25,7 @@ import Data.String (fromString, unlines, )
 import Data.Version (makeVersion, showVersion, )
 
 import Data.Text qualified as Strict.Text (singleton)
-import Test.Tasty (TestTree, )
+import Test.Tasty (TestTree, testGroup, )
 import Test.Tasty.HUnit ((@?=), testCase, )
 import Test.Tasty.QuickCheck
     ( (===)
@@ -61,33 +61,32 @@ tests =
     , testProperty "fromString . toString = toStrictText" \x ->
         fromString (toString x) === toStrictText x
 
-    , testProperty "versionFields" \v ->
-        Template.toStrictText (versionFields v)
-            === fromString (showVersion (makeVersion v))
+    , testGroup "File path combinators"
+        [ testProperty "Template.empty </> x ≡ x" \x ->
+            let Template actual = Template.empty </> x
+                Template expected = x
 
-    , testProperty "Template.empty </> x ≡ x" \x ->
-        let Template actual = Template.empty </> x
-            Template expected = x
+            in  actual === expected
 
-        in  actual === expected
+        , testProperty "x </> empty ≡ x" \x ->
+            let Template actual = x </> Template.empty
+                Template expected = x
 
-    , testProperty "x </> empty ≡ x" \x ->
-        let Template actual = x </> Template.empty
-            Template expected = x
+            in  actual === expected
 
-        in  actual === expected
+        , testProperty "ext ≠ empty ⇒ empty <.> ext ≡ \".\" <> ext" \ext ->
+            let Template actual = Template.empty <.> ext
+                Template expected = strLit "." <> ext
 
-    , testProperty "ext ≠ empty ⇒ empty <.> ext ≡ \".\" <> ext" \ext ->
-        let Template actual = Template.empty <.> ext
-            Template expected = strLit "." <> ext
+            in  not (Template.null ext) ==> actual === expected
 
-        in  not (Template.null ext) ==> actual === expected
+        , testProperty "base <.> Template.empty ≡ base" \base ->
+            let Template actual = base <.> Template.empty
+                Template expected = base
 
-    , testProperty "base <.> Template.empty ≡ base" \base ->
-        let Template actual = base <.> Template.empty
-            Template expected = base
+            in  actual === expected
 
-        in  actual === expected
+        ]
 
     , testProperty "separatedBy" \sep xs ->
         let ts = Template <$> xs
@@ -155,6 +154,49 @@ tests =
 
         fragments (libraryPath [libdir1, "", libdir2, mempty])
             @?= fragments (libraryPath [libdir1, libdir2])
+
+    , testGroup "Version Combinators"
+        [ testProperty "versionFields" \v ->
+            Template.toStrictText (versionFields v)
+                === fromString (showVersion (makeVersion v))
+
+        , testProperty "mempty ~= v = mempty" \vs ->
+            fragments ("" ~= vs) === fragments Template.empty
+
+        , testProperty "pkg ~= [] = pkg" \pkg ->
+            fragments (pkg ~= []) === fragments (lit pkg)
+
+        , testProperty "mempty ~/= v = mempty" \vs ->
+            fragments ("" ~/= vs) === fragments Template.empty
+
+        , testProperty "pkg ~/= [] = pkg" \pkg ->
+            fragments (pkg ~= []) === fragments (lit pkg)
+
+        , testProperty "mempty ~< v = mempty" \vs ->
+            fragments ("" ~< vs) === fragments Template.empty
+
+        , testProperty "pkg ~< [] = pkg" \pkg ->
+            fragments (pkg ~< []) === fragments (lit pkg)
+
+        , testProperty "mempty ~<= v = mempty" \vs ->
+            fragments ("" ~<= vs) === fragments Template.empty
+
+        , testProperty "pkg ~<= [] = pkg" \pkg ->
+            fragments (pkg ~<= []) === fragments (lit pkg)
+
+        , testProperty "mempty ~> v = mempty" \vs ->
+            fragments ("" ~> vs) === fragments Template.empty
+
+        , testProperty "pkg ~> [] = pkg" \pkg ->
+            fragments (pkg ~> []) === fragments (lit pkg)
+
+        , testProperty "mempty ~>= v = mempty" \vs ->
+            fragments ("" ~>= vs) === fragments Template.empty
+
+        , testProperty "pkg ~>= [] = pkg" \pkg ->
+            fragments (pkg ~>= []) === fragments (lit pkg)
+
+        ]
 
     , testCase "Example (1)" do
         let actual = empty
