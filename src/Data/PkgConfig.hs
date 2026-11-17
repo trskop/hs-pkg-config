@@ -565,6 +565,10 @@ options = separatedBy (Strict.Text.singleton ' ')
 --
 -- >>> option "--foo=" $ var "prefix" </> "some dir"
 -- "--foo=\"${prefix}/some dir\""
+-- >>> option "" "some/dir"
+-- "some/dir"
+-- >>> option "-I" mempty
+-- "-I\"\""
 --
 -- === Properties:
 --

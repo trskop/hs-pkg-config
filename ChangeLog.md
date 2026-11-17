@@ -3,28 +3,86 @@
 
 ## Version 0.3.0.0
 
-* Support `pkgconf` extensions.
+*   Support `pkgconf` extensions.
 
-* Simplify `PkgConfig` data type definitions so that its easier to use it
-  directly (without lenses). This includes renaming of multiple functions to
-  avoid conflicts. **breaking change**
+*   Simplify `PkgConfig` data type definitions so that its easier to use it
+    directly (without lenses). This includes renaming of multiple functions to
+    avoid conflicts. (**breaking change**)
 
-* Drop `data-default-class` dependency. **breaking change**
+*   Drop `data-default-class` dependency. (**breaking change**)
 
-* Introduces `VersionField` type class, `versionFields`, and `ver` functions
-  that generalise version construction. In addition function `version` is now
-  named `versionWord`. It was renamed due to conflict with `PkgConfig` field
-  name. **breaking change**
+*   Introduces `VersionField` type class, `versionFields`, and `ver` functions
+    that generalise version construction. In addition function `version` is now
+    named `versionWord`. It was renamed due to conflict with `PkgConfig` field
+    name. (**breaking change**)
 
-* Fixed `instance Show PkgTemplate` to use string encoding. **breaking change**
+*   Fixed `instance Show PkgTemplate` to use string encoding.
+    (**breaking change**)
 
-* Introduces `package.yaml` as a primary source of truth instead of
-  `hs-pkg-config.cabal`.
+*   Introduces `package.yaml` as a primary source of truth instead of
+    `hs-pkg-config.cabal`. The generated cabal file is included making this
+    backward compatible.
 
-* Introduces `Eq` and `Show` instances for `Fragment` type for unit testing
-  purposes.
+*   Introduces `Eq` and `Show` instances for `Fragment` type for unit testing
+    purposes.
 
-* Initial set of unit tests.
+    Both instances are structural, in other words, they follow the structure of
+    the `Fragment` data type. For context, `Eq` and `Show` instances for
+    `PkgTemplate` are not structural, they work on its string encoding.
+
+*   Introduces `hPutPkgConfig` and generalises `writePkgConfig`:
+
+    ```haskell
+    Data.PkgCofig.writePkgConfig :: MonadIO io => FilePath -> PkgConfig -> io ()
+    Data.PkgCofig.hPutPkgConfig :: MonadIO io => Handle -> PkgConfig -> io ()
+    ```
+
+    The reason for using `MonadIO` is that this library is very likely to be
+    used from within a monadic stack.
+
+*   Handle empty values in `separatedBy`, `include`, `libraries`, and
+    `libraryPath` by skipping them. (**breaking change**)
+
+    ```haskell
+    separatedBy [mempty] = separatedBy [] = mempty
+    separatedBy [mempty, x, mempty, y] = separatedBy [x, y]
+    ```
+
+    Same applies to the other aforementioned functions.
+
+*   Function `</>` and `<.>` handle empty value in the same way as the
+    `filepath` library. (**breaking change**)
+
+    ```haskell
+    mempty </> x = x
+    x </> mempty = x
+    ```
+
+    ```haskell
+    mempty <.> x = "." <> x
+    x <.> mempty = x
+    ```
+
+-   Introduces the following functions:
+
+    ```haskell
+    (Data.PkgCofig..=) :: Strict.Text -> PkgTemplate -> PkgVariable
+    ```
+
+    ```haskell
+    Data.PkgCofig.litWith, Data.PkgCofig.varWith
+        :: (a -> Strict.Text) -> a -> PkgTemplate
+    ```
+
+    ```haskell
+    Data.PkgCofig.Internal.Template.null :: PkgTemplate -> Bool
+    ```
+
+*   QuickCheck's `Arbitrary` and `CoArbitrary` instances for `PkgConfig`
+    and `PkgTemplate`
+
+*   Unit tests for some existing code as well as some of the code introduced in
+    this version.
 
 
 ## Version 0.2.1.1

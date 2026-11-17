@@ -15,7 +15,8 @@ module Tests.Data.PkgConfig
   where
 
 import Data.Bool (not, )
-import Data.Function ((.), )
+import Data.Char qualified as Char (isAlphaNum, )
+import Data.Function (($), (.), )
 import Data.Functor ((<$>), )
 import Data.List qualified as List (filter, )
 import Data.Monoid (mempty, )
@@ -23,9 +24,16 @@ import Data.Semigroup ((<>), )
 import Data.String (fromString, unlines, )
 import Data.Version (makeVersion, showVersion, )
 
+import Data.Text qualified as Strict.Text (singleton)
 import Test.Tasty (TestTree, )
 import Test.Tasty.HUnit ((@?=), testCase, )
-import Test.Tasty.QuickCheck ((===), (==>), testProperty, )
+import Test.Tasty.QuickCheck
+    ( (===)
+    , (==>)
+    , arbitraryASCIIChar
+    , forAll
+    , testProperty
+    , )
 
 import Data.PkgConfig
 import Data.PkgConfig.Internal.Template (Template(Template, fragments), )
@@ -94,6 +102,30 @@ tests =
         let ts = Template <$> xs
         in  options ts
                 === separatedBy " " (List.filter (not . Template.null) ts)
+
+    , testProperty "option empty \"<s>\" ~ \"\\\"<s>\\\"\"" \s ->
+        Template.toStrictText (option "" s)
+            === Strict.Text.singleton '"' <> Template.toStrictText s
+                <> Strict.Text.singleton '"'
+
+    , testProperty "option \"-<c>\" empty ~ \"-<c>\\\"\\\"\""
+        $ forAll arbitraryASCIIChar \c ->
+            let opt = Strict.Text.singleton '-' <> Strict.Text.singleton c
+
+            in  Char.isAlphaNum c
+                    ==> Template.toStrictText (option opt Template.empty)
+                        === opt <> "\"\""
+
+    , testProperty "option \"-<c>\" \"<s>\" ~ \"-<c>\\\"<s>\\\"\""
+        $ forAll arbitraryASCIIChar \c s ->
+            let opt = Strict.Text.singleton '-' <> Strict.Text.singleton c
+
+                expected = opt <> Strict.Text.singleton '"'
+                    <> Template.toStrictText s
+                    <> Strict.Text.singleton '"'
+
+            in  Char.isAlphaNum c
+                    ==> Template.toStrictText (option opt s) === expected
 
     , testCase "includes" do
         fragments (includes []) @?= []

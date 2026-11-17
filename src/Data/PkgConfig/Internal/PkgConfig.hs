@@ -258,6 +258,9 @@ empty = PkgConfig
     }
 
 -- | Serialize `PkgConfig` in to strict `Strict.Text`.
+--
+-- >>> toStrictText empty{name = "foo", version = "1.2.3"}
+-- "Name: foo\nVersion: 1.2.3\n"
 toStrictText :: PkgConfig -> Strict.Text
 toStrictText PkgConfig{..} = Strict.Text.concat
     [ variablesToStrictText variables
@@ -291,22 +294,24 @@ toStrictText PkgConfig{..} = Strict.Text.concat
       where
         varToText (var, tmpl) = var <> "=" <> Template.toStrictText tmpl
 
--- | Variable definitions.
+-- | Lens to access variable definitions. See the @variables@ field of
+-- `PkgConfig` for more information.
 pkgVariables
     :: Functor f
     => ([PkgVariable] -> f [PkgVariable])
     -> PkgConfig -> f PkgConfig
 pkgVariables f cfg@PkgConfig{variables = a} = f a <&> \b -> cfg{variables = b}
 
--- | Human-readable name of a library or package. This field is not used by
--- /pkg-config/ tool for queries, because it uses @.pc@ file base name.
+-- | Lens to access human-readable name of a library or package. See the @name@
+-- field of `PkgConfig` for more information.
 pkgName
     :: Functor f
     => (Strict.Text -> f Strict.Text)
     -> PkgConfig -> f PkgConfig
 pkgName f cfg@PkgConfig{name = a} = f a <&> \b -> cfg{name = b}
 
--- | Brief description of the package.
+-- | Lens to access brief description of the package. See the @description@
+-- field of `PkgConfig` for more information.
 pkgDescription
     :: Functor f
     => (Strict.Text -> f Strict.Text)
@@ -314,31 +319,34 @@ pkgDescription
 pkgDescription f cfg@PkgConfig{description = a} =
     f a <&> \b -> cfg{description = b}
 
--- | URL where people can get more information about and download the package.
+-- | Lens to access URL value where people can get more information about and
+-- download the package. See the @url@ field of `PkgConfig` for more
+-- information.
 pkgUrl
     :: Functor f
     => (Strict.Text -> f Strict.Text)
     -> PkgConfig -> f PkgConfig
 pkgUrl f cfg@PkgConfig{url = a} = f a <&> \b -> cfg{url = b}
 
--- | Version of the package.
+-- | Lens to access version of the package. See the @version@ field of
+-- `PkgConfig` for more information.
 pkgVersion
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
 pkgVersion f cfg@PkgConfig{version = a} = f a <&> \b -> cfg{version = b}
 
--- | List of packages required by this package and their version bounds.
+-- | Lens to access list of packages required by this package and their version
+-- bounds. See the @requires@ field of `PkgConfig` for more information.
 pkgRequires
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
 pkgRequires f cfg@PkgConfig{requires = a} = f a <&> \b -> cfg{requires = b}
 
--- | Compiler flags specific to this package and any required libraries that
--- don't support /pkg-config/. If the required libraries support /pkg-config/,
--- they should be added to @Requires@ (`pkgRequires`) or @Requires.private@
--- (`pkgRequiresPrivate`).
+-- | Lens to access compiler flags specific to this package and any required
+-- libraries that don't support /pkg-config/. See the @requiresPrivate@ field
+-- of `PkgConfig` for more information.
 pkgRequiresPrivate
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
@@ -346,13 +354,8 @@ pkgRequiresPrivate
 pkgRequiresPrivate f cfg@PkgConfig{requiresPrivate = a} =
     f a <&> \b -> cfg{requiresPrivate = b}
 
--- | An optional field describing packages that this one conflicts with. The
--- version specific rules from the Requires field also apply here. This field
--- also takes multiple instances of the same package. E.g.:
---
--- @
--- Conflicts: bar \< 1.2.3, bar \>= 1.3.0.
--- @
+-- | Lens to access packages that this one conflicts with. See the @conflicts@
+-- field of `PkgConfig` for more information.
 pkgConflicts
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
@@ -360,8 +363,9 @@ pkgConflicts
 pkgConflicts f cfg@PkgConfig{conflicts = a} =
     f a <&> \b -> cfg{conflicts = b}
 
--- | Dependencies that the package fills and that may be provided by an
--- alternate package.
+-- | Lens to access dependencies that the package fills and that may be
+-- provided by an alternate package. See the @provides@ field of `PkgConfig`
+-- for more information.
 --
 -- This field is a /pkgconf/ extension.
 --
@@ -372,20 +376,18 @@ pkgProvides
     -> PkgConfig -> f PkgConfig
 pkgProvides f cfg@PkgConfig{provides = a} = f a <&> \b -> cfg{provides = b}
 
--- | Compiler flags specific to this package and any required libraries that
--- don't support /pkg-config/. If the required libraries support /pkg-config/,
--- they should be added to @Requires@ (`pkgRequires`) or @Requires.private@
--- (`pkgRequiresPrivate`).
+-- | Lens to access compiler flags specific to this package and any required
+-- libraries that don't support /pkg-config/. See the @cflags@ field of
+-- `PkgConfig` for more information.
 pkgCflags
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
 pkgCflags f cfg@PkgConfig{cflags = a} = f a <&> \b -> cfg{cflags = b}
 
--- | Compiler flags specific to this package and any required libraries that
--- don't support /pkg-config/ for when linking statically. If the required
--- libraries support /pkg-config/, they should be added to @Requires@
--- (`pkgRequires`) or @Requires.private@ (`pkgRequiresPrivate`).
+-- | Lens to access compiler flags specific to this package and any required
+-- libraries that don't support /pkg-config/ for when linking statically. See
+-- the @cflagsPrivate@ field of `PkgConfig` for more information.
 --
 -- This field is a /pkgconf/ extension.
 --
@@ -397,18 +399,18 @@ pkgCflagsPrivate
 pkgCflagsPrivate f cfg@PkgConfig{cflagsPrivate = a} =
     f a <&> \b -> cfg{cflagsPrivate = b}
 
--- | Linking flags specific to this package and any required libraries that
--- don't support /pkg-config/. The same rules as for @Cflags@ (`pkgCflags`)
--- field apply here.
+-- | Lens to access linking flags specific to this package and any required
+-- libraries that don't support /pkg-config/. See the @libs@ field of
+-- `PkgConfig` for more information.
 pkgLibs
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
     -> PkgConfig -> f PkgConfig
 pkgLibs f cfg@PkgConfig{libs = a} = f a <&> \b -> cfg{libs = b}
 
--- | Linking flags for private libraries required by this package but not
--- exposed to applications. The same rules as for @Cflags@ (`pkgCflags`) field
--- apply here.
+-- | Lens to access linking flags for private libraries required by this
+-- package but not exposed to applications. See the @libsPrivate@ field of
+-- `PkgConfig` for more information.
 pkgLibsPrivate
     :: Functor f
     => (PkgTemplate -> f PkgTemplate)
