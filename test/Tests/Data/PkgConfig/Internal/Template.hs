@@ -14,7 +14,7 @@ module Tests.Data.PkgConfig.Internal.Template
     )
   where
 
-import Data.Bool (not, )
+import Data.Bool (Bool(False, True), not, )
 --import Data.Function ((.), )
 --import Data.List qualified as List (concatMap, )
 import Data.Monoid (mempty, )
@@ -22,8 +22,9 @@ import Data.Semigroup ((<>), )
 import Data.String (fromString, )
 
 import Data.Text qualified as Strict.Text
+import Test.QuickCheck.Instances.Text () -- Instances only
 import Test.Tasty (TestTree, )
-import Test.Tasty.HUnit ((@?=), testCase, )
+import Test.Tasty.HUnit ((@?=), assertBool, testCase, )
 import Test.Tasty.QuickCheck ((.&&.), (===), (==>), testProperty, )
 
 import Data.PkgConfig.Internal.Template
@@ -31,54 +32,78 @@ import Data.PkgConfig.Internal.Template
 
 tests :: [TestTree]
 tests =
-    [ testCase "toString empty" do
+    [ testCase "Eq" do
+        Template [Literal "foo", Literal "bar"] @?= Template [Literal "foobar"]
+        Template [Variable "foo", Variable "bar"]
+            @?= Template [Variable "foo", Variable "bar"]
+        Template [Literal "foo", Variable "bar"]
+            @?= Template [Literal "foo", Variable "bar"]
+        Template [Variable "foo", Literal "bar"]
+            @?= Template [Variable "foo", Literal "bar"]
+
+    , testCase "toString empty" do
         toStrictText empty @?= ""
 
     , testCase "mempty ≡ empty" do
         mempty @?= empty
+        fragments mempty @?= fragments empty
 
-        let Template actual = mempty
-            Template expected = empty
+    , testCase "null empty" do
+        assertBool "'null (Template [])' failed to return 'True'"
+            (null (Template []))
+        assertBool "'null empty' failed to return 'True'" (null empty)
 
-        actual @?= expected
+    , testProperty "not (null x); where x ≠ empty" \x ->
+        -- This is to avoid using 'empty' and 'null' in a circular reference:
+        let precondition = \case
+                Template [] -> False
+                _           -> True
 
-    , testProperty "fromString ≡ strLit" \x ->
-        fromString x === strLit x
+        in  precondition x ==> not (null x)
 
     , testCase "lit \"\" = empty" do
-        lit "" @?= empty
+        fragments (lit "") @?= fragments empty
 
-    , testProperty "lit t = Template [Listeral t]" \s ->
-        let t = fromString s
-            Template actual = lit t
-
-        in  not (Strict.Text.null t) ==> actual === [Literal t]
+    , testProperty "lit t = Template [Listeral t]" \t ->
+        not (Strict.Text.null t) ==> fragments (lit t) === [Literal t]
 
     , testCase "lit escapes properly" do
         toStrictText (lit "${prefix}") @?= "$${prefix}"
         toStrictText (lit "foo\\bar") @?= "foo\\\\bar"
         toStrictText (lit "# foo bar") @?= "\\# foo bar"
 
+    , testProperty "fromString ≡ strLit" \x ->
+        fragments (fromString x) === fragments (strLit x)
+
+    , testProperty "strLit s = lit (fromString s)" \s ->
+        fragments (strLit s) === fragments (lit (fromString s))
+
     , testCase "var \"\" = empty" do
-        var "" @?= empty
+        fragments (var "") @?= fragments empty
 
-    , testProperty "var t = Template [Variable t]" \s ->
-        let t = fromString s
-            Template actual = var t
+    , testProperty "var t = Template [Variable t]" \t ->
+        not (Strict.Text.null t) ==> fragments (var t) === [Variable t]
 
-        in  not (Strict.Text.null t) ==> actual === [Variable t]
+    , testProperty "strVar s = var (fromString s)" \s ->
+        fragments (strVar s) === fragments (var (fromString s))
+
+    , testProperty "singletonLit c = fromString [c]" \c ->
+        fragments (singletonLit c) === fragments (fromString [c])
 
     , testProperty "Semigroup associativity law" \x y z ->
-        let Template lhs = x <> (y <> z)
-            Template rhs = (x <> y) <> z
-
-        in  lhs === rhs
+        fragments (x <> (y <> z)) === fragments ((x <> y) <> z)
 
     , testProperty "Monoid identity laws" \x ->
-        let Template lhs1 = x <> mempty
-            Template lhs2 = mempty <> x
-            Template rhs = x
+        {- HLINT ignore "Monoid law, left identity" -}
+        {- HLINT ignore "Monoid law, right identity" -}
+        fragments (x <> mempty) === fragments x
+            .&&. fragments (mempty <> x) === fragments x
 
-        in  lhs1 === rhs .&&. lhs2 === rhs
+    , testCase "getVariables" do
+        getVariables empty @?= []
+        getVariables (Template [Variable "foo"]) @?= ["foo"]
+        getVariables (Template [Literal "x", Variable "foo"]) @?= ["foo"]
+        getVariables (Template [Variable "foo", Variable "bar"])
+            @?= ["foo", "bar"]
 
     ]

@@ -50,6 +50,8 @@
 
     Same applies to the other aforementioned functions.
 
+    Unit tests for these properties included.
+
 *   Function `</>` and `<.>` handle empty value in the same way as the
     `filepath` library. (**breaking change**)
 
@@ -62,6 +64,8 @@
     mempty <.> x = "." <> x
     x <.> mempty = x
     ```
+
+    Unit tests for these properties included.
 
 *   Functions `~=`, `~/=`, `~<`, `~>`, `~<=`, and `~>=` now handle empty values
     in a sensible way. For example:

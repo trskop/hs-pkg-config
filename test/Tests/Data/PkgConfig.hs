@@ -16,13 +16,16 @@ module Tests.Data.PkgConfig
 
 import Data.Bool (not, )
 import Data.Char qualified as Char (isAlphaNum, )
-import Data.Function (($), (.), )
-import Data.Functor ((<$>), )
+import Data.Function (($), (&), (.), )
+import Data.Functor.Identity (Identity(Identity, runIdentity), )
+import Data.Int (Int, )
 import Data.List qualified as List (filter, )
 import Data.Monoid (mempty, )
 import Data.Semigroup ((<>), )
 import Data.String (fromString, unlines, )
 import Data.Version (makeVersion, showVersion, )
+import Data.Word (Word, )
+import Text.Show (show, )
 
 import Data.Text qualified as Strict.Text (singleton)
 import Test.Tasty (TestTree, testGroup, )
@@ -36,7 +39,7 @@ import Test.Tasty.QuickCheck
     , )
 
 import Data.PkgConfig
-import Data.PkgConfig.Internal.Template (Template(Template, fragments), )
+import Data.PkgConfig.Internal.Template (Template(fragments), )
 import Data.PkgConfig.Internal.Template qualified as Template
 
 
@@ -63,44 +66,30 @@ tests =
 
     , testGroup "File path combinators"
         [ testProperty "Template.empty </> x ≡ x" \x ->
-            let Template actual = Template.empty </> x
-                Template expected = x
-
-            in  actual === expected
+            fragments (Template.empty </> x) === fragments x
 
         , testProperty "x </> empty ≡ x" \x ->
-            let Template actual = x </> Template.empty
-                Template expected = x
-
-            in  actual === expected
+            fragments (x </> Template.empty) === fragments x
 
         , testProperty "ext ≠ empty ⇒ empty <.> ext ≡ \".\" <> ext" \ext ->
-            let Template actual = Template.empty <.> ext
-                Template expected = strLit "." <> ext
-
-            in  not (Template.null ext) ==> actual === expected
+            not (Template.null ext)
+                ==> fragments (Template.empty <.> ext)
+                    === fragments (strLit "." <> ext)
 
         , testProperty "base <.> Template.empty ≡ base" \base ->
-            let Template actual = base <.> Template.empty
-                Template expected = base
-
-            in  actual === expected
+            fragments (base <.> Template.empty) === fragments base
 
         ]
 
-    , testProperty "separatedBy" \sep xs ->
-        let ts = Template <$> xs
-        in  separatedBy sep ts
-                === separatedBy sep (List.filter (not . Template.null) ts)
+    , testProperty "separatedBy" \sep ts ->
+        separatedBy sep ts
+            === separatedBy sep (List.filter (not . Template.null) ts)
 
-    , testProperty "list" \xs ->
-        let ts = Template <$> xs
-        in  list ts === separatedBy ", " (List.filter (not . Template.null) ts)
+    , testProperty "list" \ts ->
+        list ts === separatedBy ", " (List.filter (not . Template.null) ts)
 
-    , testProperty "options" \xs ->
-        let ts = Template <$> xs
-        in  options ts
-                === separatedBy " " (List.filter (not . Template.null) ts)
+    , testProperty "options" \ts ->
+        options ts === separatedBy " " (List.filter (not . Template.null) ts)
 
     , testProperty "option empty \"<s>\" ~ \"\\\"<s>\\\"\"" \s ->
         Template.toStrictText (option "" s)
@@ -156,7 +145,13 @@ tests =
             @?= fragments (libraryPath [libdir1, libdir2])
 
     , testGroup "Version Combinators"
-        [ testProperty "versionFields" \v ->
+        [ testProperty "versionField @Word" \n ->
+            Template.toStrictText (versionField @Word n) === fromString (show n)
+
+        , testProperty "versionField @Int" \n ->
+            Template.toStrictText (versionField @Int n) === fromString (show n)
+
+        , testProperty "versionFields @Int ~ makeVersion" \v ->
             Template.toStrictText (versionFields v)
                 === fromString (showVersion (makeVersion v))
 
@@ -166,11 +161,17 @@ tests =
         , testProperty "pkg ~= [] = pkg" \pkg ->
             fragments (pkg ~= []) === fragments (lit pkg)
 
+        , testCase "Usage samples for (~=)" do
+            Template.toStrictText ("pkg" ~= [1, 2, 3]) @?= "pkg = 1.2.3"
+
         , testProperty "mempty ~/= v = mempty" \vs ->
             fragments ("" ~/= vs) === fragments Template.empty
 
         , testProperty "pkg ~/= [] = pkg" \pkg ->
-            fragments (pkg ~= []) === fragments (lit pkg)
+            fragments (pkg ~/= []) === fragments (lit pkg)
+
+        , testCase "Usage samples for (~/=)" do
+            Template.toStrictText ("pkg" ~/= [1, 2, 3]) @?= "pkg != 1.2.3"
 
         , testProperty "mempty ~< v = mempty" \vs ->
             fragments ("" ~< vs) === fragments Template.empty
@@ -178,11 +179,17 @@ tests =
         , testProperty "pkg ~< [] = pkg" \pkg ->
             fragments (pkg ~< []) === fragments (lit pkg)
 
+        , testCase "Usage samples for (~<)" do
+            Template.toStrictText ("pkg" ~< [1, 2, 3]) @?= "pkg < 1.2.3"
+
         , testProperty "mempty ~<= v = mempty" \vs ->
             fragments ("" ~<= vs) === fragments Template.empty
 
         , testProperty "pkg ~<= [] = pkg" \pkg ->
             fragments (pkg ~<= []) === fragments (lit pkg)
+
+        , testCase "Usage samples for (~<=)" do
+            Template.toStrictText ("pkg" ~<= [1, 2, 3]) @?= "pkg <= 1.2.3"
 
         , testProperty "mempty ~> v = mempty" \vs ->
             fragments ("" ~> vs) === fragments Template.empty
@@ -190,20 +197,26 @@ tests =
         , testProperty "pkg ~> [] = pkg" \pkg ->
             fragments (pkg ~> []) === fragments (lit pkg)
 
+        , testCase "Usage samples for (~>)" do
+            Template.toStrictText ("pkg" ~> [1, 2, 3]) @?= "pkg > 1.2.3"
+
         , testProperty "mempty ~>= v = mempty" \vs ->
             fragments ("" ~>= vs) === fragments Template.empty
 
         , testProperty "pkg ~>= [] = pkg" \pkg ->
             fragments (pkg ~>= []) === fragments (lit pkg)
 
+        , testCase "Usage samples for (~>=)" do
+            Template.toStrictText ("pkg" ~>= [1, 2, 3]) @?= "pkg >= 1.2.3"
+
         ]
 
     , testCase "Example (1)" do
         let actual = empty
                 { variables =
-                   [ "prefix" .= "/usr/local"
-                   , "includedir" .= (var "prefix" </> "include")
-                   ]
+                    [ "prefix" .= "/usr/local"
+                    , "includedir" .= (var "prefix" </> "include")
+                    ]
                 }
 
             expected = unlines
@@ -237,11 +250,11 @@ tests =
     , testCase "Example (3)" do
         let actual = empty
                 { variables =
-                   [ "prefix"     .= "/usr/local"
-                   , "includedir" .= (var "prefix" </> "include")
-                   , "libdir"     .= (var "prefix" </> "lib")
-                   , "arch"       .= "i386"
-                   ]
+                    [ "prefix"     .= "/usr/local"
+                    , "includedir" .= (var "prefix" </> "include")
+                    , "libdir"     .= (var "prefix" </> "lib")
+                    , "arch"       .= "i386"
+                    ]
                 , name = "some library"
                 , description = "Example pkg-config"
                 , cflags = includes [var "includedir" </> "foo"]
@@ -265,4 +278,39 @@ tests =
 
         toString actual @?= expected
 
+    , testCase "Example (4)" do
+        let actual = empty
+                & pkgVariables .~
+                    [ "prefix"     .= "/usr/local"
+                    , "includedir" .= (var "prefix" </> "include")
+                    , "libdir"     .= (var "prefix" </> "lib")
+                    , "arch"       .= "i386"
+                    ]
+                & pkgName .~ "some library"
+                & pkgDescription .~ "Example pkg-config"
+                & pkgCflags .~ includes [var "includedir" </> "foo"]
+                & pkgLibs .~ options
+                    [ libraryPath [var "libdir" </> var "arch"]
+                    , libraries ["foo"]
+                    ]
+
+            expected = unlines
+                [ "prefix=/usr/local"
+                , "includedir=${prefix}/include"
+                , "libdir=${prefix}/lib"
+                , "arch=i386"
+                , ""
+                , "Name: some library"
+                , "Description: Example pkg-config"
+                , "Cflags: -I\"${includedir}/foo\""
+                , "Libs: -L\"${libdir}/${arch}\" -lfoo"
+                ]
+
+        toString actual @?= expected
+
     ]
+
+-- So that a whole library doesn't need to imported.
+(.~) :: ((a -> Identity b) -> s -> Identity t) -> b -> s -> t
+l .~ b = runIdentity . l (\_ -> Identity b)
+infixr 4 .~

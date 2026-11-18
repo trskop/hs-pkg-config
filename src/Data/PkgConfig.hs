@@ -826,7 +826,7 @@ hPutPkgConfig h = liftIO . Strict.Text.hPutStr h . toStrictText
 -- There is another approach that can be useful in some cases.
 --
 -- @
--- `empty` & \\`PkgConfig`{..} -> `PkgConfig`
+-- `empty` `Data.Function.&` \\`PkgConfig`{..} -> `PkgConfig`
 --     { `variables` = [\"prefix\" `.=` \"\/usr\/local\"]
 --     , `name`      = \"some library\"
 --     -- ...
@@ -842,10 +842,10 @@ hPutPkgConfig h = liftIO . Strict.Text.hPutStr h . toStrictText
 --
 -- @
 -- `empty`
---     & `pkgVariables` .~ [\"prefix\" `.=` \"\/usr\/local\"]
---     & `pkgName`      .~ \"some library\"
+--     `Data.Function.&` `pkgVariables` .~ [\"prefix\" `.=` \"\/usr\/local\"]
+--     `Data.Function.&` `pkgName`      .~ \"some library\"
 --     -- ...
---     & `pkgLibs`      .~ `includes`
+--     `Data.Function.&` `pkgLibs`      .~ `includes`
 --         [ `var` \"prefix\" `</>` \"include\" `</>` \"foo\"
 --         ]
 -- @

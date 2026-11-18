@@ -112,6 +112,7 @@ test-suite hs-pkg-config-test
   build-depends:
       base >=4.17 && <5
     , hs-pkg-config
+    , quickcheck-instances >=0.3.24 && <1
     , tasty >=1.4 && <2
     , tasty-hunit >=0.10 && <1
     , tasty-quickcheck >=0.10 && <1

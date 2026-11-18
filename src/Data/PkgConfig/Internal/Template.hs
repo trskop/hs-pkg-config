@@ -138,11 +138,11 @@ fragmentToStrictText = \case
 
     -- Escape all special characters except end-of-line sequence.
     escapeChar :: Char -> Strict.Text
-    escapeChar = Strict.Text.pack . \case
+    escapeChar = \case
         '$'  -> "$$"
         '#'  -> "\\#"
         '\\' -> "\\\\"
-        c    -> [c]
+        c    -> Strict.Text.singleton c
 
     -- Process text by splitting it on EOL, repeatedly, and escape special
     -- characters and end of line sequences.
