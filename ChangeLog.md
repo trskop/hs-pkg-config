@@ -3,7 +3,7 @@
 
 ## Version 0.3.0.0
 
-*   Support `pkgconf` extensions.
+*   Support all known `pkgconf` extensions.
 
 *   Simplify `PkgConfig` data type definitions so that its easier to use it
     directly (without lenses). This includes renaming of multiple functions to

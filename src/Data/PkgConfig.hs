@@ -32,15 +32,27 @@ module Data.PkgConfig
     -- ** Lenses
     , pkgVariables
     , pkgName
-    , pkgDescription
-    , pkgUrl
     , pkgVersion
+    , pkgDescription
+    , pkgMaintainer
+    , pkgCopyright
+    , pkgLicense
+    , pkgLicenseFile
+    , pkgUrl
+    , pkgSource
     , pkgRequires
+    , pkgRequiresInternal
     , pkgRequiresPrivate
+    , pkgRequiresShared
     , pkgConflicts
+    , pkgProvides
     , pkgCflags
+    , pkgCflagsPrivate
+    , pkgCflagsShared
     , pkgLibs
     , pkgLibsPrivate
+    , pkgLibsShared
+    , pkgLinkAbi
 
     -- ** Serialization
     , toStrictText
@@ -131,14 +143,24 @@ import Data.PkgConfig.Internal.PkgConfig
         ( PkgConfig
         , cflags
         , cflagsPrivate
+        , cflagsShared
         , conflicts
+        , copyright
+        , description
         , description
         , libs
         , libsPrivate
+        , libsShared
+        , license
+        , licenseFile
+        , linkAbi
         , name
         , provides
         , requires
+        , requiresInternal
         , requiresPrivate
+        , requiresShared
+        , source
         , url
         , variables
         , version
@@ -150,13 +172,25 @@ import Data.PkgConfig.Internal.PkgConfig
     , PkgVersion
     , empty
     , pkgCflags
+    , pkgCflagsPrivate
+    , pkgCflagsShared
     , pkgConflicts
+    , pkgCopyright
     , pkgDescription
     , pkgLibs
     , pkgLibsPrivate
+    , pkgLibsShared
+    , pkgLicense
+    , pkgLicenseFile
+    , pkgLinkAbi
+    , pkgMaintainer
     , pkgName
+    , pkgProvides
     , pkgRequires
+    , pkgRequiresInternal
     , pkgRequiresPrivate
+    , pkgRequiresShared
+    , pkgSource
     , pkgUrl
     , pkgVariables
     , pkgVersion
