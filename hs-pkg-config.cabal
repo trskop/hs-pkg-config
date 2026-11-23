@@ -53,12 +53,14 @@ library
       Data.PkgConfig
       Data.PkgConfig.Internal.PkgConfig
       Data.PkgConfig.Internal.Template
+      Data.PkgConfig.Validate
   other-modules:
       Paths_hs_pkg_config
   hs-source-dirs:
       src
   default-extensions:
       BlockArguments
+      DataKinds
       DeriveDataTypeable
       DeriveGeneric
       DerivingStrategies
@@ -69,16 +71,23 @@ library
       LambdaCase
       NamedFieldPuns
       NoImplicitPrelude
+      OverloadedRecordDot
       OverloadedStrings
       RecordWildCards
       StandaloneDeriving
       TypeApplications
+  other-extensions:
+      MultiParamTypeClasses
+      OverloadedLabels
+      StrictData
   ghc-options: -Wall -Wcompat -Wimplicit-prelude -Wprepositive-qualified-module -Wunused-packages -Wmissing-import-lists
   build-depends:
       QuickCheck >=2.14.1 && <3
     , base >=4.17 && <5
+    , either >=5.0.1.1 && <6
     , quickcheck-instances >=0.3.24 && <1
     , text >=0.11 && <3
+    , unordered-containers >=0.2.15 && <1
   default-language: Haskell2010
   if flag(pedantic)
     ghc-options: -Werror
@@ -94,6 +103,7 @@ test-suite hs-pkg-config-test
       test
   default-extensions:
       BlockArguments
+      DataKinds
       DeriveDataTypeable
       DeriveGeneric
       DerivingStrategies
@@ -104,10 +114,15 @@ test-suite hs-pkg-config-test
       LambdaCase
       NamedFieldPuns
       NoImplicitPrelude
+      OverloadedRecordDot
       OverloadedStrings
       RecordWildCards
       StandaloneDeriving
       TypeApplications
+  other-extensions:
+      MultiParamTypeClasses
+      OverloadedLabels
+      StrictData
   ghc-options: -Wall -Wcompat -Wimplicit-prelude -Wprepositive-qualified-module -Wunused-packages -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.17 && <5

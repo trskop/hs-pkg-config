@@ -95,6 +95,8 @@
 *   QuickCheck's `Arbitrary` and `CoArbitrary` instances for `PkgConfig`
     and `PkgTemplate`
 
+*   Validator for `PkgConfig` data type that checks for common issues.
+
 *   Unit tests for some existing code as well as some of the code introduced in
     this version.
 

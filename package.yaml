@@ -41,6 +41,7 @@ flags:
 
 default-extensions:
   - BlockArguments # GHC ≥8.6
+  - DataKinds # GHC ≥7.4
   - DeriveDataTypeable # GHC ≥6.8
   - DeriveGeneric # GHC ≥7.2
   - DerivingStrategies # GHC ≥8.2
@@ -51,10 +52,16 @@ default-extensions:
   - LambdaCase # GHC ≥7.6
   - NamedFieldPuns # GHC ≥6.10
   - NoImplicitPrelude # GHC ≥6.8
+  - OverloadedRecordDot # GHC ≥9.2
   - OverloadedStrings # GHC ≥6.8
   - RecordWildCards # GHC ≥6.8
   - StandaloneDeriving # GHC ≥6.8
   - TypeApplications # GHC ≥8.0
+
+other-extensions:
+  - MultiParamTypeClasses # GHC ≥6.8
+  - OverloadedLabels # GHC ≥8.0
+  - StrictData # GHC ≥8.0
 
 dependencies:
   - base >=4.17 && <5
@@ -64,11 +71,13 @@ dependencies:
 # All the dependencies that we use with version bounds. This keeps them all
 # consistent by the virtue of sharing.
 _dependencies:
+  - &either                       "either >=5.0.1.1 && <6"
   - &text                         "text >=0.11 && <3"
   # ^ This library doesn't depend on anything special, therefore it should be
   # able to work with wide range of versions. Lower bound 0.11 was chosen by
   # "cabal init" and the upper bound was changed to reflect current newest
-  # version 1.2.0.3.
+  # version 2.1.4.
+  - &unordered-containers         "unordered-containers >=0.2.15 && <1"
 
   # Testing frameworks and testing specific packages:
   - &QuickCheck                   "QuickCheck >=2.14.1 && <3"
@@ -94,8 +103,10 @@ library:
 
   dependencies:
     - *QuickCheck
+    - *either
     - *quickcheck-instances
     - *text
+    - *unordered-containers
 
   ghc-options:
     - "-Wmissing-import-lists" # GHC ≥7.0
