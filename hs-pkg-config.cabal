@@ -98,6 +98,7 @@ test-suite hs-pkg-config-test
   other-modules:
       Tests.Data.PkgConfig
       Tests.Data.PkgConfig.Internal.Template
+      Tests.Data.PkgConfig.Validate
       Paths_hs_pkg_config
   hs-source-dirs:
       test
@@ -126,6 +127,7 @@ test-suite hs-pkg-config-test
   ghc-options: -Wall -Wcompat -Wimplicit-prelude -Wprepositive-qualified-module -Wunused-packages -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.17 && <5
+    , either >=5.0.1.1 && <6
     , hs-pkg-config
     , quickcheck-instances >=0.3.24 && <1
     , tasty >=1.4 && <2

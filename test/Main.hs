@@ -20,6 +20,7 @@ import Test.Tasty (TestTree, defaultMain, testGroup, )
 
 import Tests.Data.PkgConfig qualified (tests, )
 import Tests.Data.PkgConfig.Internal.Template qualified (tests, )
+import Tests.Data.PkgConfig.Validate qualified (tests, )
 
 
 main :: IO ()
@@ -31,4 +32,6 @@ tests =
         Tests.Data.PkgConfig.tests
     , testGroup "PkgConfig.Internal.Template"
         Tests.Data.PkgConfig.Internal.Template.tests
+    , testGroup "PkgConfig.Validate"
+        Tests.Data.PkgConfig.Validate.tests
     ]

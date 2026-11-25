@@ -118,6 +118,7 @@ tests:
     dependencies:
       - *this
 
+      - *either
       - *quickcheck-instances
       - *tasty
       - *tasty-hunit

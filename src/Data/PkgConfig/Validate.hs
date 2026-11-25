@@ -31,6 +31,7 @@ import Data.Functor ((<&>))
 import Data.List as List (concat)
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import Data.Maybe (Maybe(Just, Nothing))
+import Data.Ord (Ord)
 import Data.Semigroup ((<>))
 import GHC.Generics (Generic)
 import GHC.OverloadedLabels (IsLabel(fromLabel))
@@ -57,6 +58,7 @@ import Data.PkgConfig.Internal.Template qualified as Template
     , null
     )
 
+
 -- $top-level
 --
 -- #top-level#
@@ -66,7 +68,8 @@ import Data.PkgConfig.Internal.Template qualified as Template
 -- * Check for missing required fields, see `PkgConfig` fields to see which
 --   fields are required.
 --
--- * Check that all defined variables are actually used.
+-- * Check that all defined variables are actually used, see @variables@ field
+--   of `PkgConfig` data type.
 --
 -- * Check that all variable expansions are referencing existing variables.
 
@@ -74,9 +77,6 @@ import Data.PkgConfig.Internal.Template qualified as Template
 data ValidationError
     = MissingRequiredFieldError FieldReference
     -- ^ A field with a required value is empty.
-
-    | UnusedVariableError Strict.Text{-variable name-}
-    -- ^ A variable is defined but not used.
 
     | UndefinedVariableError
         FieldReference{-field where the error was detected-}
@@ -86,7 +86,10 @@ data ValidationError
     -- variables section instead then the field names will be set to empty
     -- strings.
 
-  deriving stock (Eq, Generic, Show)
+    | UnusedVariableError Strict.Text{-variable name-}
+    -- ^ A variable is defined but not used.
+
+  deriving stock (Eq, Generic, Ord, Show)
 
 -- | References a /pkg-config/ field, both the field of `PkgConfig` data type
 -- and the /pkg-cofnig/ file.
@@ -103,7 +106,7 @@ data FieldReference = FieldReference
     -- represented as a section with variable definitions and not a single
     -- field.
     }
-  deriving stock (Eq, Generic, Show)
+  deriving stock (Eq, Generic, Ord, Show)
 
 instance IsLabel "variables" FieldReference where
     fromLabel :: FieldReference

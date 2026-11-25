@@ -30,6 +30,8 @@
     the `Fragment` data type. For context, `Eq` and `Show` instances for
     `PkgTemplate` are not structural, they work on its string encoding.
 
+*   Introduces `instance Eq PkgConfig`.
+
 *   Introduces `hPutPkgConfig` and generalises `writePkgConfig`:
 
     ```haskell

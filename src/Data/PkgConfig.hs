@@ -147,13 +147,13 @@ import Data.PkgConfig.Internal.PkgConfig
         , conflicts
         , copyright
         , description
-        , description
         , libs
         , libsPrivate
         , libsShared
         , license
         , licenseFile
         , linkAbi
+        , maintainer
         , name
         , provides
         , requires

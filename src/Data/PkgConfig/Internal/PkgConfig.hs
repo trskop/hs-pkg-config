@@ -59,6 +59,7 @@ module Data.PkgConfig.Internal.PkgConfig
 import Control.Applicative (pure)
 import Data.Bool (not, otherwise)
 import Data.Data (Data)
+import Data.Eq (Eq)
 import Data.Function ((.), ($))
 import Data.Functor (Functor, (<&>))
 import Data.List as List (filter, map, null)
@@ -163,6 +164,9 @@ data PkgConfig = PkgConfig
     -- identifier(s). Licenses can be combined by operators @AND@ and @OR@, and
     -- grouping @(@, @)@.
     --
+    -- Possible values can be found on [SPDX License List
+    -- ](https://spdx.org/licenses/).
+    --
     -- This field is a /pkgconf/ extension.
     --
     -- @since 0.3.0.0
@@ -227,7 +231,7 @@ data PkgConfig = PkgConfig
     -- package. E.g.:
     --
     -- @
-    -- Conflicts: bar \< 1.2.3, bar \>= 1.3.0.
+    -- Conflicts: bar \< 1.2.3, bar \>= 1.3.0
     -- @
 
     , provides :: PkgTemplate
@@ -304,7 +308,7 @@ data PkgConfig = PkgConfig
     --
     -- @since 0.3.0.0
     }
-  deriving stock (Data, Generic, Show)
+  deriving stock (Data, Eq, Generic, Show)
 
 instance QuickCheck.Arbitrary PkgConfig where
     arbitrary :: QuickCheck.Gen PkgConfig

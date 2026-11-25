@@ -1,6 +1,6 @@
 -- |
 -- Module:      Tests.Data.PkgConfig.Internal.Template
--- Description: Unit tests for Data.PkgConfig module
+-- Description: Unit tests for Data.PkgConfig.Internal.Template module
 -- Copyright:   (c) 2026 Peter Trško
 -- License:     BSD3
 --
@@ -8,7 +8,7 @@
 -- Stability:   experimental
 -- Portability: GHC specific language extensions.
 --
--- __TL;DR__ Unit tests for "Data.PkgConfig" module.
+-- __TL;DR__ Unit tests for "Data.PkgConfig.Internal.Template" module.
 module Tests.Data.PkgConfig.Internal.Template
     ( tests
     )
