@@ -65,13 +65,40 @@ import Data.PkgConfig.Internal.Template qualified as Template
 --
 -- Validation includes:
 --
--- * Check for missing required fields, see `PkgConfig` fields to see which
---   fields are required.
+-- *   Check for __missing required fields__, see `PkgConfig` fields to see
+--     which fields are required.
 --
--- * Check that all defined variables are actually used, see @variables@ field
---   of `PkgConfig` data type.
+--     __Be aware__ that while some fields that considered required are
+--     commonly ommited in practice. For example, @URL@ field is one of the
+--     most commonly ommited fields. Because of this it is advised to consider
+--     some of these validation errors as warnings instead of errors.
 --
--- * Check that all variable expansions are referencing existing variables.
+-- *   Check that all __defined variables are actually used__, see @variables@
+--     field of `PkgConfig` data type.
+--
+--     __Be aware__ that, in practice, a lot of /pkg-config/ files contain
+--     unused variable definitions. The main reason is that these files are
+--     commonly generated using [GNU Autotools
+--     ](https://en.wikipedia.org/wiki/GNU_Autotools). In addition these
+--     variables can be used independently via /pkg-config/, /pkgconf/, or
+--     other compatible tool. For example by invoking one of the following:
+--
+--     @
+--     pkgconf --print-variables MODULE […]
+--     pkgconf --variable=VARIABLE MODULE […]
+--     pkg-cofnig --variable=VARIABLE MODULE […]
+--     @
+--
+-- *   Check that all __variable expansions are referencing existing variables__.
+--
+--     __Be aware__ that while these are most commonly errors, it is possible
+--     to define variables when invoking /pkg-config/, /pkgconf/, or similar
+--     and fill missing values.
+--
+--     @
+--     pkgconf --define-variable=NAME=VALUE MODULE […]
+--     pkg-config --define-variable=NAME=VALUE MODULE […]
+--     @
 
 -- | Error describing possible issues in `PkgConfig`.
 data ValidationError

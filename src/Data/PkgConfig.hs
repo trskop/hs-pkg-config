@@ -234,6 +234,9 @@ import Data.PkgConfig.Internal.PkgConfig
 -- * [@pkgconf(1)@](https://man.archlinux.org/man/pkgconf.1.en) manual page
 --   documenting /pkgconf/ command line interface.
 --
+-- * [@pkg-config(1)@](https://linux.die.net/man/1/pkg-config) manual page
+--   documenting /pkg-config/ command line interface.
+--
 -- * [/pkgconf/ public repository](https://github.com/pkgconf/pkgconf)
 --
 -- * [/u-config/ ("micro-config")
